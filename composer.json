@@ -1,0 +1,40 @@
+{
+	"name" : "jmg/process-helper",
+	"description" : "symfony process wrapper - Execute many processes, manage logs - interplates on command strings",
+	"type" : "library",
+	"license" : "GPL",
+	"authors": [
+		{
+			"name" : "Jean-Marie Gervais",
+			"email" : "jm.gervais@gmail.com"
+		}
+	],
+	"keywords" : [
+		"process"
+	],
+	"require" : {
+		"php" : ">=7.3",
+		"composer/composer" : "~2.1",
+		"symfony/process": "^5.3",
+		"mefworks/string-interpolation": "^1.0"
+	},	
+	"require-dev": {
+		"phpstan/phpstan": "^1",
+		"squizlabs/php_codesniffer": "^3.6",
+		"escapestudios/symfony2-coding-standard": "3.x-dev",
+		"phpunit/phpunit": "^9.5",
+		"mikey179/vfsstream": "^1.6"
+	},
+	"minimum-stability" : "alpha",
+	"prefer-stable" : true,
+	"autoload": {
+		"psr-4": {
+			"jmg\\process-helper\\": "src/"
+		}
+	},
+	"autoload-dev": {
+		"psr-4": {
+			"jmg\\process-helper-tests\\": "tests/phpunit/src"
+		}
+	}
+}
