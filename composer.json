@@ -29,12 +29,12 @@
 	"prefer-stable" : true,
 	"autoload": {
 		"psr-4": {
-			"jmg\\process-helper\\": "src/"
+			"jmg\\ProcessHelper\\": "src/"
 		}
 	},
 	"autoload-dev": {
 		"psr-4": {
-			"jmg\\process-helper-tests\\": "tests/phpunit/src"
+			"jmg\\processHelperTests\\": "tests/phpunit/src"
 		}
 	}
 }

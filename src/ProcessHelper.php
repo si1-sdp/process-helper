@@ -6,7 +6,7 @@ declare(strict_types=1);
  * This file is part of deslp
  */
 
-namespace jmg\processHelper;
+namespace jmg\ProcessHelper;
 
 use mef\Stringifier\Stringifier;
 use mef\StringInterpolation\PlaceholderInterpolator;
@@ -35,6 +35,9 @@ class ProcessHelper
     /** @var string $output */
     protected $output;
 
+    /** @var int $returnCode */
+    protected $returnCode;
+
     /** @var LoggerInterface $logger */
     protected $logger;
     /**
@@ -44,7 +47,7 @@ class ProcessHelper
      *
      * @return void
      */
-    public function construct($logger = null)
+    public function __construct($logger = null)
     {
         if ($logger) {
             $this->logger = $logger;
@@ -99,6 +102,15 @@ class ProcessHelper
     public function getOutput()
     {
         return $this->output;
+    }
+    /**
+     * Gets the return code of last command
+     *
+     * @return int
+     */
+    public function getReturnCode()
+    {
+        return $this->returnCode;
     }
     /**
      * Runs an array of commands
@@ -182,7 +194,7 @@ class ProcessHelper
         $process = new Process($cmd);
         $process->setTimeout($this->timeout);
         $startTime = new \DateTime();
-        $retCode = 0;
+        $this->returnCode = 0;
         if (array_key_exists('step', $logContext)) {
             $stepInfo = "{count}:{step} ";
         } else {
@@ -217,18 +229,18 @@ class ProcessHelper
                 $err = 'Process '.$command.' exited with code '.$process->getExitCode()."\n";
                 $err .= $process->getExitCodeText();
                 $this->logger->error($err, $logContext);
-                $retCode = 0 + $process->getExitCode();
+                $this->returnCode = 0 + $process->getExitCode();
             } else {
                 $this->logger->notice("${stepInfo}command was successfull !", $logContext);
             }
         } catch (ProcessTimedOutException $exception) {
             $this->logger->error("Timeout : job exeeded timeout of $this->timeout seconds", $logContext);
-            $retCode = 160;
+            $this->returnCode = 160;
         }
         $endTime  = new \DateTime();
         $duration = $startTime->diff($endTime)->format('%h H, %i mn, %s secs');
         $this->logger->info("{name} took $duration", $logContext);
 
-        return $retCode;
+        return $this->returnCode;
     }
 }
