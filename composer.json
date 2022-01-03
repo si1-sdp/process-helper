@@ -2,7 +2,7 @@
 	"name" : "jmg/process-helper",
 	"description" : "symfony process wrapper - Execute many processes, manage logs - interplates on command strings",
 	"type" : "library",
-	"license" : "GPL",
+	"license" : "GPL-3.0-or-later",
 	"authors": [
 		{
 			"name" : "Jean-Marie Gervais",
