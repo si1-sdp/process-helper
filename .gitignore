@@ -1,2 +1,4 @@
 /vendor/
 /tmp/
+/tests/phpunit/.phpunit.cache
+/tests/results/

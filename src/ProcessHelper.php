@@ -182,7 +182,7 @@ class ProcessHelper
      *
      * @return int
      */
-    protected function execCommand($command, $logContext = [])
+    public function execCommand($command, $logContext = [])
     {
         if (is_string($command)) {
             $cmd = explode(' ', $command);
@@ -209,7 +209,9 @@ class ProcessHelper
                 $progressBar = new ProgressBar(new ConsoleOutput());
                 $progressBar->setFormat('%elapsed% [%bar%] %message%');
             }
-            foreach ($process as $data) {
+            $iterator = $process->getIterator();
+            foreach ($iterator as $data) {
+                print_r($data);
                 foreach (explode("\n", $data) as $line) {
                     if (!empty(str_replace(' ', '', $line))) {
                         if ($this->displayProgress) {
