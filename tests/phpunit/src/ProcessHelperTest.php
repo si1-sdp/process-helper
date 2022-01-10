@@ -10,12 +10,15 @@
 
 namespace jmg\processHelperTests;
 
+use Generator;
 use \Mockery;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Process\Process;
 use jmg\ProcessHelper\ProcessHelper;
 use Psr\Log\Test\TestLogger;
 use jmg\processHelperTests\LogTesterTrait;
+use Symfony\Component\Console\Logger\ConsoleLogger;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 /**
  * @covers \jmg\ProcessHelper\ProcessHelper
@@ -30,12 +33,21 @@ class ProcessHelperTest extends TestCase
 
     public function testExecCommand(): void
     {
-
-        $this->makeProcessMock(['a', 'b', 'c']);
         $this->logger = new TestLogger();
+        $mockData = [
+            'lines' => [
+                [ 'out' => 'Starting Mock process'],
+                [ 'out' => 'Scanning for config'  ],
+                [ 'err' => 'No config here'       ],
+            ],
+            'timeout' => 60,
+            'exit'    => 1,
+        ];
+
+        $this->makeProcessMock($mockData);
         $ph = new ProcessHelper($this->logger);
-        $ph->execCommand('toto');
-        $this->assertLogInfo('CMD = toto');
+        $ph->execCommand('ls -l /foobar/baz');
+        $this->assertLogInfo('CMD = ls -l');
         $this->showDebugLogs();
         $this->showNoDebugLogs();
         //print "COUNT : ".$startStub->callCount()."\n";
@@ -47,14 +59,38 @@ class ProcessHelperTest extends TestCase
      *
      * @return MockObject
      */
-    protected function makeProcessMock($lines) {
+    protected function makeProcessMock($mockData) {
         $m = Mockery::mock('overload:Symfony\Component\Process\Process')->makePartial();
-        $m->shouldReceive('getIterator')->andReturn($lines);
-        //$m->shouldReceive('getIterator')->once()->andReturnUsing($generate($lines));
-        //$m->shouldReceive('getIterator')->withNoArgs()->once()->andYield($lines);
+        /**
+         * Generator for output
+         *
+         * @param array<array<string,string>> $lines
+         *
+         * @return void
+         */
+        function generator($lines)
+        {
+            foreach ($lines as $content) {
+                foreach ($content as $outputType => $line) {
+                    yield $outputType => $line;
+                }
+            }
+        }
+        $m->shouldReceive('getIterator')->andReturn(generator($mockData['lines']));
         $m->shouldReceive('start')->withNoArgs();
-        $m->shouldReceive('setTimeout')->with(60);
-        $m->shouldReceive('isSuccessful')->withNoArgs()->andReturn(true);
+        $m->shouldReceive('setTimeout')->with($mockData['timeout']);
+        if (0 === $mockData['exit']) {
+            $m->shouldReceive('isSuccessful')->withNoArgs()->andReturn(true);
+        } else {
+            $m->shouldReceive('isSuccessful')->withNoArgs()->andReturn(false);
+            $m->shouldReceive('getExitCode')->withNoArgs()->andReturn($mockData['exit']);
+            if (array_key_exists('exitText', $mockData)) {
+                $exitText = $mockData['exitText'];
+            } else {
+                $exitText = 'exitText';
+            }
+            $m->shouldReceive('getExitCodeText')->withNoArgs()->andReturn($exitText);
+        }
 
         return $m;
     }

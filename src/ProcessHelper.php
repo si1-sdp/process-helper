@@ -211,7 +211,6 @@ class ProcessHelper
             }
             $iterator = $process->getIterator();
             foreach ($iterator as $data) {
-                print_r($data);
                 foreach (explode("\n", $data) as $line) {
                     if (!empty(str_replace(' ', '', $line))) {
                         if ($this->displayProgress) {
@@ -228,9 +227,10 @@ class ProcessHelper
                 $this->logger->notice($lastLine, $logContext);
             }
             if (!$process->isSuccessful()) {
-                $err = 'Process '.$command.' exited with code '.$process->getExitCode()."\n";
-                $err .= $process->getExitCodeText();
+                $err = 'Process '.$command.' exited with code '.$process->getExitCode();
                 $this->logger->error($err, $logContext);
+                $this->logger->error($process->getExitCodeText(), $logContext);
+
                 $this->returnCode = 0 + $process->getExitCode();
             } else {
                 $this->logger->notice("${stepInfo}command was successfull !", $logContext);
