@@ -8,6 +8,7 @@ declare(strict_types=1);
 
 namespace jmg\ProcessHelper;
 
+use DateTime;
 use mef\Stringifier\Stringifier;
 use mef\StringInterpolation\PlaceholderInterpolator;
 use Psr\Log\LoggerInterface;
@@ -23,14 +24,34 @@ use Symfony\Component\Process\Process;
  */
 class ProcessHelper
 {
-    /** @var bool $displayProgress */
-    protected $displayProgress = false;
+    const PH_RUN_IN_SHELL       = 'run-in-shell';
+    const PH_TIMEOUT            = 'timeout';
+    const PH_DRY_RUN            = 'dry-run';
+    const PH_FIND_EXECUTABLE    = 'find-executable';
+    const PH_DIRECTORY          = 'directory';
+    const PH_ENV_VARS           = 'environment';
+
+    const PH_DISPLAY_PROGRESS   = 'display-progress';
+    const PH_DISABLE_OUTPUT     = 'disable-output';
+    const PH_DEFAULT_OUTPUT     = 'default-output-level';
+    const PH_OUTPUT_DEBUG       = 'output-debug-lines';
+    const PH_OUTPUT_INFO        = 'output-info-lines';
+    const PH_OUTPUT_NOTICE      = 'output-notice-lines';
+    const PH_OUTPUT_WARNING     = 'output-warning-lines';
+    const PH_OUTPUT_ERROR       = 'output-error-lines';
+    const PH_OUTPUT_CRITICAL    = 'output-critical-lines';
+    const PH_OUTPUT_ALERT       = 'output-alert-lines';
+    const PH_OUTPUT_EMERGENCY   = 'output-emergency-lines';
+    const PH_OUTPUT_IGNORE      = 'output-ignore-lines';
+
+    const PH_OUTPUT_RAISE_ERROR = 'output-raise-error';
+    const PH_STOP_ON_ERROR      = 'stop-on-error';
+    const PH_EXCEPTION_ON_ERROR = 'exception-on-error';
+    const PH_EXIT_CODES_OK      = 'exit-codes-ok';
 
     /** @var bool $stopOnError */
     protected $stopOnError = true;
 
-    /** @var int $timeout */
-    protected $timeout = 60;
 
     /** @var string $output */
     protected $output;
@@ -40,6 +61,16 @@ class ProcessHelper
 
     /** @var LoggerInterface $logger */
     protected $logger;
+
+    /** @var array<string,bool|int> */
+    protected $defaultOptions;
+
+    /** @var array<string,bool|int> */
+    protected $globalOptions;
+
+    /** @var array<string,bool|int> */
+    protected $commandOptions;
+
     /**
      * Constructor
      *
@@ -54,6 +85,38 @@ class ProcessHelper
         } else {
             $logger = new ConsoleLogger(new ConsoleOutput());
         }
+        $defaults = [
+
+            self::PH_RUN_IN_SHELL       => false,
+            self::PH_TIMEOUT            => 60,
+            self::PH_DRY_RUN            => false,
+            self::PH_FIND_EXECUTABLE    => false,
+            self::PH_DIRECTORY          => '',
+            self::PH_ENV_VARS           => [],
+
+            self::PH_DISPLAY_PROGRESS   => false,
+            self::PH_DISABLE_OUTPUT     => false,
+            self::PH_DEFAULT_OUTPUT     => 'debug',
+            self::PH_OUTPUT_DEBUG       => [],
+            self::PH_OUTPUT_INFO        => [],
+            self::PH_OUTPUT_NOTICE      => [],
+            self::PH_OUTPUT_WARNING     => [],
+            self::PH_OUTPUT_ERROR       => [],
+            self::PH_OUTPUT_CRITICAL    => [],
+            self::PH_OUTPUT_ALERT       => [],
+            self::PH_OUTPUT_EMERGENCY   => [],
+            self::PH_OUTPUT_IGNORE      => [],
+
+            self::PH_OUTPUT_RAISE_ERROR => false,
+            self::PH_STOP_ON_ERROR      => true,
+            self::PH_EXCEPTION_ON_ERROR => false,
+            self::PH_EXIT_CODES_OK      => [],
+
+
+        ];
+        $this->readOptions($defaults, $this->defaultOptions);
+        $this->resetCommandOptions();
+        $this->resetGlobalOptions();
     }
     /**
      * Enable/disables progress bar display
@@ -64,12 +127,12 @@ class ProcessHelper
      */
     public function displayProgress($displayProgress)
     {
-        $this->displayProgress = $displayProgress;
+        $this->globalOptions[self::PH_DISPLAY_PROGRESS] = $displayProgress;
 
         return $this;
     }
     /**
-     * determines wether to stop processing nex commands when a command in a list ends with error
+     * determines wether to stop processing next commands when a command in a list ends with error
      *
      * @param bool $stopOnError
      *
@@ -77,7 +140,7 @@ class ProcessHelper
      */
     public function stopOnError($stopOnError)
     {
-        $this->stopOnError = $stopOnError;
+        $this->globalOptions[self::PH_STOP_ON_ERROR] = $stopOnError;
 
         return $this;
     }
@@ -90,7 +153,7 @@ class ProcessHelper
      */
     public function setTimeout($timeout)
     {
-        $this->timeout = $timeout;
+        $this->globalOptions[self::PH_TIMEOUT] = $timeout;
 
         return $this;
     }
@@ -114,24 +177,63 @@ class ProcessHelper
     }
     /**
      * Runs an array of commands
+     * array<command>
+     * Command may be :
+     * 1/ a string                    : string will be split on white space
+     * 2/ array<string>               : [cmd, arg1, arg2, ...]
+     * 3/ named commands with options : [ 'label' => 'This is command one', 'cmd' => command, 'opts' => array<string> ]
      *
-     * @param array<string,mixed>|string $commands
-     * @param string                     $label
+     *
+     * @param string|array<string>|array<array<string>|array<array<string,mixed>> $commands
+     * @param string                                                              $label
+     * @param array<string,string>                                                $cmdCtx
      *
      * @return int
      */
-    public function execCommands($commands, $label = '')
+    public function execCommands($commands, $label = '', $cmdCtx = [])
     {
+        $stringifier  = new Stringifier();
+        $interpolator = new PlaceholderInterpolator($stringifier);
         if (!is_array($commands)) {
-            $commands = [ $label => $commands ];
+            $commands = [ $commands ];
         }
         $nCommands = count($commands);
         $logContext = [ 'name' => $label ];
-        $n = 1;
-        foreach ($commands as $step => $cmd) {
+        $step = 1;
+        foreach ($commands as $command) {
+            $logContext['subProcess'] = '';
             if ($nCommands > 1) {
-                $logContext = [ 'step' => $step, 'count' => "$n/$nCommands"];
+                $logContext['step']       = $step;
+                $logContext['count']      = "$step/$nCommands";
+                $step++;
             }
+            // case 1
+            if (is_string($command)) {
+                $cmd = explode(' ', $command);
+            // case 2
+            } elseif (!array_key_exists('cmd', $command)) {
+                $cmd = $command;
+            // case 3
+            } else {
+                $cmd = $command['cmd'];
+                if (array_key_exists('opts', $command)) {
+                    $this->readCommandOptions($command['opts']);
+                } else {
+                    $this->resetCommandOptions();
+                }
+                if (array_key_exists('label', $command)) {
+                    $logContext['subProcess'] = $command['label'];
+                }
+            }
+            if ($cmdCtx) {
+                $interpolated = [];
+                foreach ($cmd as $elem) {
+                    $interpolated[] = $interpolator($elem, $cmdCtx);
+                }
+                $cmd = $interpolated;
+            }
+
+
             $retCode = $this->execCommand($cmd, $logContext);
             if (0 !== $retCode && $this->stopOnError) {
                 return $retCode;
@@ -152,60 +254,40 @@ class ProcessHelper
      */
     public function interpolateAndExecCommands($rawCmds, $cmdCtx, $label)
     {
-        $stringifier  = new Stringifier();
-        $interpolator = new PlaceholderInterpolator($stringifier);
-
-        $cmds = [];
-        if (is_string($rawCmds)) {
-            $rawCmds = [ $label => $rawCmds ];
-        }
-        foreach ($rawCmds as $name => $cmd) {
-            if (is_array($cmd)) {
-                if (array_key_exists('ssh', $cmd) && array_key_exists('cmd', $cmd)) {
-                    $ssh = $interpolator($cmd['ssh'], $cmdCtx);
-                    $remoteCommand = $interpolator($cmd['cmd'], $cmdCtx);
-                    $cmds[$name] = explode(' ', $ssh);
-                    $cmds[$name][] =  $remoteCommand;
-                }
-            } else {
-                $cmds[$name] = $interpolator($cmd, $cmdCtx);
-            }
-        }
-
-        return $this->execCommands($cmds, $label);
+        return $this->execCommands($rawCmds, $label, $cmdCtx);
     }
     /**
      * executes a command
      *
-     * @param string|array<string> $command
+     * @param array<string>        $command
      * @param array<string,string> $logContext
      *
      * @return int
      */
     public function execCommand($command, $logContext = [])
     {
-        if (is_string($command)) {
-            $cmd = explode(' ', $command);
-        } else {
-            $cmd = $command;
-            $command = implode(' ', $cmd);
-        }
+        //$cmd = $command;
 
-        $process = new Process($cmd);
-        $process->setTimeout($this->timeout);
-        $startTime = new \DateTime();
+        if ($this->getOptionValue(self::PH_RUN_IN_SHELL)) {
+            $process = Process::fromShellCommandline(implode(' ', $command));
+        } else {
+            $process = new Process($command);
+        }
+        $logContext['cmd'] = $process->getCommandLine();
+
+        $process->setTimeout($this->getOptionValue(self::PH_TIMEOUT));
         $this->returnCode = 0;
         if (array_key_exists('step', $logContext)) {
-            $stepInfo = "{count}:{step} ";
+            $stepInfo = "{count}:[{subProcess}] ";
         } else {
             $stepInfo = '';
         }
-        $this->logger->info("${stepInfo}CMD = $command", $logContext);
+        $this->logger->info("${stepInfo}CMD = {cmd}", $logContext);
         try {
             $lastLine = '';
             $process->start();
             $progressBar = null;
-            if ($this->displayProgress) {
+            if ($this->getOptionValue(self::PH_DISPLAY_PROGRESS)) {
                 $progressBar = new ProgressBar(new ConsoleOutput());
                 $progressBar->setFormat('%elapsed% [%bar%] %message%');
             }
@@ -213,7 +295,7 @@ class ProcessHelper
             foreach ($iterator as $data) {
                 foreach (explode("\n", $data) as $line) {
                     if (!empty(str_replace(' ', '', $line))) {
-                        if ($this->displayProgress) {
+                        if ($progressBar) {
                             $progressBar->advance();
                             $progressBar->setMessage(substr($line, 0, 80));
                         }
@@ -222,12 +304,12 @@ class ProcessHelper
                     }
                 }
             }
-            if ($this->displayProgress) {
+            if ($progressBar) {
                 $progressBar->clear();
                 $this->logger->notice($lastLine, $logContext);
             }
             if (!$process->isSuccessful()) {
-                $err = 'Process '.$command.' exited with code '.$process->getExitCode();
+                $err = "Process '{cmd}' exited with code ".$process->getExitCode();
                 $this->logger->error($err, $logContext);
                 $this->logger->error($process->getExitCodeText(), $logContext);
 
@@ -239,10 +321,123 @@ class ProcessHelper
             $this->logger->error("Timeout : job exeeded timeout of $this->timeout seconds", $logContext);
             $this->returnCode = 160;
         }
-        $endTime  = new \DateTime();
-        $duration = $startTime->diff($endTime)->format('%h H, %i mn, %s secs');
-        $this->logger->info("{name} took $duration", $logContext);
+        //$endTime  = new \DateTime();
+        //$duration = new \DateTime($process->getStartTime())->diff($endTime)->format('%h H, %i mn, %s secs');
+        //$this->logger->info("{name} took $duration", $logContext);
 
         return $this->returnCode;
+    }
+        /**
+     * lists all valid options
+     *
+     * @return array<string>
+     */
+    protected function getValidOptions()
+    {
+        return [
+            self::PH_RUN_IN_SHELL,
+            self::PH_TIMEOUT,
+            self::PH_DRY_RUN,
+            self::PH_FIND_EXECUTABLE,
+            self::PH_DIRECTORY,
+            self::PH_ENV_VARS,
+
+            self::PH_DISPLAY_PROGRESS,
+            self::PH_DISABLE_OUTPUT,
+            self::PH_DEFAULT_OUTPUT,
+            self::PH_OUTPUT_DEBUG,
+            self::PH_OUTPUT_INFO,
+            self::PH_OUTPUT_NOTICE,
+            self::PH_OUTPUT_WARNING,
+            self::PH_OUTPUT_ERROR,
+            self::PH_OUTPUT_CRITICAL,
+            self::PH_OUTPUT_ALERT,
+            self::PH_OUTPUT_EMERGENCY,
+            self::PH_OUTPUT_IGNORE,
+
+            self::PH_OUTPUT_RAISE_ERROR,
+            self::PH_STOP_ON_ERROR,
+            self::PH_EXCEPTION_ON_ERROR,
+            self::PH_EXIT_CODES_OK,
+        ];
+    }
+    /**
+     * read Options given in array
+     *
+     * @param array<string,bool|int> $opts
+     * @param array<string,bool|int> $tgtArray;
+     *
+     * @return void
+     */
+    protected function readOptions($opts, &$tgtArray)
+    {
+        $validOptions = $this->getValidOptions();
+        foreach ($opts as $optName => $optValue) {
+            if (!in_array($optName, $validOptions)) {
+                throw new \Exception(sprintf("Unknown option : '%s'", $optName));
+            }
+            $tgtArray[$optName] = $optValue;
+        }
+    }
+    /**
+     * read options for given command
+     *
+     * @param array<string,bool|int|string|array<string>|array<string,string>> $opts
+     *
+     * @return void
+     */
+    protected function readGlobalOptions($opts)
+    {
+        $this->readOptions($opts, $this->globalOptions);
+    }
+    /**
+     * reset all command options
+     *
+     * @return void
+     */
+    protected function resetGlobalOptions()
+    {
+        $this->globalOptions = [];
+    }
+    /**
+     * read options for given command
+     *
+     * @param array<string,bool|int> $opts
+     *
+     * @return void
+     */
+    protected function readCommandOptions($opts)
+    {
+        $this->readOptions($opts, $this->commandOptions);
+    }
+    /**
+     * reset all command options
+     *
+     * @return void
+     */
+    protected function resetCommandOptions()
+    {
+        $this->commandOptions = [];
+    }
+    /**
+     * Gets the value for given option
+     *
+     * @param string $optName
+     *
+     * @return int|bool
+     */
+    protected function getOptionValue($optName)
+    {
+        if (!in_array($optName, $this->getValidOptions())) {
+            throw new \Exception(sprintf("Unknown option : '%s'", $optName));
+        }
+        if (array_key_exists($optName, $this->commandOptions)) {
+            return $this->commandOptions[$optName];
+        }
+        if (array_key_exists($optName, $this->globalOptions)) {
+            return $this->globalOptions[$optName];
+        }
+
+        return $this->defaultOptions[$optName];
     }
 }
