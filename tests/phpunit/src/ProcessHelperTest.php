@@ -31,6 +31,9 @@ class ProcessHelperTest extends TestCase
     /** @var LoggerInterface $logger*/
     protected $logger;
 
+    /**
+     * Test execCommand method
+     */
     public function testExecCommand(): void
     {
         $this->logger = new TestLogger();
@@ -47,19 +50,20 @@ class ProcessHelperTest extends TestCase
         $this->makeProcessMock($mockData);
         $ph = new ProcessHelper($this->logger);
         $ph->execCommand('ls -l /foobar/baz');
-        $this->assertLogInfo('CMD = ls -l');
+        $this->assertLogInfo('CMD = {cmd}', [ 'cmd' => '/path/to/cmd' ]);
         $this->showDebugLogs();
         $this->showNoDebugLogs();
         //print "COUNT : ".$startStub->callCount()."\n";
-
     }
 
     /**
      * get mock object for process
+     * @param array<string,mixed> $mockData
      *
      * @return MockObject
      */
-    protected function makeProcessMock($mockData) {
+    protected function makeProcessMock($mockData)
+    {
         $m = Mockery::mock('overload:Symfony\Component\Process\Process')->makePartial();
         /**
          * Generator for output
@@ -77,6 +81,7 @@ class ProcessHelperTest extends TestCase
             }
         }
         $m->shouldReceive('getIterator')->andReturn(generator($mockData['lines']));
+        $m->shouldReceive('getCommandLine')->andReturn('/path/to/cmd');
         $m->shouldReceive('start')->withNoArgs();
         $m->shouldReceive('setTimeout')->with($mockData['timeout']);
         if (0 === $mockData['exit']) {
@@ -94,5 +99,4 @@ class ProcessHelperTest extends TestCase
 
         return $m;
     }
-
 }
