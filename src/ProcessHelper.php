@@ -318,7 +318,8 @@ class ProcessHelper
                 $this->logger->notice("${stepInfo}command was successfull !", $logContext);
             }
         } catch (ProcessTimedOutException $exception) {
-            $this->logger->error("Timeout : job exeeded timeout of $this->timeout seconds", $logContext);
+            $timeout = $this->getOptionValue(self::PH_TIMEOUT);
+            $this->logger->error("Timeout : job exeeded timeout of $timeout seconds", $logContext);
             $this->returnCode = 160;
         }
         //$endTime  = new \DateTime();
