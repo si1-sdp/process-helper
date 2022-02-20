@@ -15,39 +15,52 @@ trait LogTesterTrait
     /**
      * Assert message is in log level $level, then purge message
      *
-     * @param string $message
-     * @param string $level
+     * @param string               $message
+     * @param string               $level
+     * @param array<string,string> $context
      */
-    public function assertLogAndPurge($message, $level): void
+    public function assertLogAndPurge($message, $level, $context = []): void
     {
-        $this->assertTrue($this->logContains($message, $level, true), "message [$level]$message not found in log");
+        $ctxString = '';
+        if ($context) {
+            $ctx = $context;
+            array_walk($ctx, function (&$a, $b) {
+                $a = "'$b' = '$a'";
+            });
+            $ctxString = " with context [ ".implode(', ', $ctx)." ]";
+        }
+        $explain = "message [$level]$message not found in log $ctxString";
+        $this->assertTrue($this->logContains($message, $level, $context, true), $explain);
     }
     /**
      * Assert message warning exists, then purge message
      *
-     * @param string $message
+     * @param string               $message
+     * @param array<string,string> $context
      */
-    public function assertLogWarning($message): void
+    public function assertLogWarning($message, $context = []): void
     {
-        $this->assertLogAndPurge($message, 'warning');
+        $this->assertLogAndPurge($message, 'warning', $context);
     }
    /**
      * Assert message info exists, then purge message
      *
-     * @param string $message
+     * @param string               $message
+     * @param array<string,string> $context
      */
-    public function assertLogInfo($message): void
+    public function assertLogInfo($message, $context = []): void
     {
-        $this->assertLogAndPurge($message, 'info');
+        $this->assertLogAndPurge($message, 'info', $context);
     }
    /**
      * Assert message error exists, then purge message
      *
-     * @param string $message
+     * @param string               $message
+     * @param array<string,string> $context
      */
-    public function assertLogError($message): void
+    public function assertLogError($message, $context = []): void
     {
-        $this->assertLogAndPurge($message, 'error');
+        $this->assertLogAndPurge($message, 'error', $context);
     }
     /**
      * assertNoMore function : assert that no more messages of level $level are left in log
@@ -114,13 +127,14 @@ trait LogTesterTrait
 
     /**
      *
-     * @param string $message
-     * @param string $level
-     * @param bool   $delete
+     * @param string               $message
+     * @param string               $level
+     * @param array<string,string> $context
+     * @param bool                 $delete
      *
      * @return bool
      */
-    public function logContains($message, $level, $delete = false)
+    public function logContains($message, $level, $context = [], $delete = false)
     {
         $recordsByLevel = $this->logGetRecordsByLevelProperty();
         $toDelete = [];
@@ -129,6 +143,11 @@ trait LogTesterTrait
         if (isset($recordsByLevel[$level])) {
             foreach ($recordsByLevel[$level] as $i => $rec) {
                 if (strpos($rec['message'], $message) !== false) {
+                    foreach ($context as $key => $value) {
+                        if (!(array_key_exists($key, $rec['context']) && $rec['context'][$key] === $value)) {
+                            continue 2;
+                        }
+                    }
                     $ret = true;
                     $toDelete[] = $i;
                 }
@@ -196,7 +215,7 @@ trait LogTesterTrait
     {
         $recordsByLevel = $this->logGetRecordsByLevelProperty();
         $printed = 0;
-        $fmt = $cut ? "    %-76.76s\n" : "    %s\n";
+        $fmt    = $cut ? "    %-76.76s\n" : "    %s\n";
         print "\n=============================================\n";
         foreach (array_keys($recordsByLevel) as $level) {
             if ('debug' === $level) {
@@ -205,6 +224,13 @@ trait LogTesterTrait
             print "LEVEL $level\n";
             foreach ($recordsByLevel[$level] as $record) {
                 printf($fmt, $record['message']);
+                if ($record['context']) {
+                    $ctx = $record['context'];
+                    array_walk($ctx, function (&$a, $b) {
+                        $a = "'$b' = '$a'";
+                    });
+                    print("    CONTEXT = [ ".implode(', ', $ctx)." ]\n");
+                }
                 $printed++;
             }
         }
