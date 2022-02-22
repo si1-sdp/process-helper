@@ -32,26 +32,52 @@ class ProcessHelper
     const PH_ENV_VARS           = 'environment';
 
     const PH_DISPLAY_PROGRESS   = 'display-progress';
-    const PH_DISABLE_OUTPUT     = 'disable-output';
-    const PH_DEFAULT_OUTPUT     = 'default-output-level';
-    const PH_OUTPUT_DEBUG       = 'output-debug-lines';
-    const PH_OUTPUT_INFO        = 'output-info-lines';
-    const PH_OUTPUT_NOTICE      = 'output-notice-lines';
-    const PH_OUTPUT_WARNING     = 'output-warning-lines';
-    const PH_OUTPUT_ERROR       = 'output-error-lines';
-    const PH_OUTPUT_CRITICAL    = 'output-critical-lines';
-    const PH_OUTPUT_ALERT       = 'output-alert-lines';
-    const PH_OUTPUT_EMERGENCY   = 'output-emergency-lines';
-    const PH_OUTPUT_IGNORE      = 'output-ignore-lines';
 
-    const PH_OUTPUT_RAISE_ERROR = 'output-raise-error';
-    const PH_STOP_ON_ERROR      = 'stop-on-error';
-    const PH_EXCEPTION_ON_ERROR = 'exception-on-error';
-    const PH_EXIT_CODES_OK      = 'exit-codes-ok';
+    const PH_DISABLE_OUTPUT          =  'disable-output';
+    const PH_DEFAULT_OUTPUT          = 'default-output-level';
+    const PH_OUTPUT_DEBUG_LINES      = 'output-debug-lines';
+    const PH_OUTPUT_INFO_LINES       = 'output-info-lines';
+    const PH_OUTPUT_NOTICE_LINES     = 'output-notice-lines';
+    const PH_OUTPUT_WARNING_LINES    = 'output-warning-lines';
+    const PH_OUTPUT_ERROR_LINES      = 'output-error-lines';
+    const PH_OUTPUT_CRITICAL_LINES   = 'output-critical-lines';
+    const PH_OUTPUT_ALERT_LINES      = 'output-alert-lines';
+    const PH_OUTPUT_EMERGENCY_LINES  = 'output-emergency-lines';
+    const PH_OUTPUT_IGNORE_LINES     = 'output-ignore-lines';
 
+    const PH_OUTPUT_RAISE_ERROR      = 'output-raise-error';
+    const PH_STOP_ON_ERROR           = 'stop-on-error';
+    const PH_EXCEPTION_ON_ERROR      = 'exception-on-error';
+    const PH_EXIT_CODES_OK           = 'exit-codes-ok';
+
+    const DEFAULT_OPTIONS = [
+        self::PH_RUN_IN_SHELL           => false,
+        self::PH_TIMEOUT                => 60,
+        self::PH_DRY_RUN                => false,
+        self::PH_FIND_EXECUTABLE        => false,
+        self::PH_DIRECTORY              => '',
+        self::PH_ENV_VARS               => [],
+
+        self::PH_DISPLAY_PROGRESS       => false,
+        self::PH_DISABLE_OUTPUT         => false,
+        self::PH_DEFAULT_OUTPUT         => 'debug',
+        self::PH_OUTPUT_DEBUG_LINES     => [],
+        self::PH_OUTPUT_INFO_LINES      => [],
+        self::PH_OUTPUT_NOTICE_LINES    => [],
+        self::PH_OUTPUT_WARNING_LINES   => [],
+        self::PH_OUTPUT_ERROR_LINES     => [],
+        self::PH_OUTPUT_CRITICAL_LINES  => [],
+        self::PH_OUTPUT_ALERT_LINES     => [],
+        self::PH_OUTPUT_EMERGENCY_LINES => [],
+        self::PH_OUTPUT_IGNORE_LINES    => [],
+
+        self::PH_OUTPUT_RAISE_ERROR     => false,
+        self::PH_STOP_ON_ERROR          => true,
+        self::PH_EXCEPTION_ON_ERROR     => false,
+        self::PH_EXIT_CODES_OK          => [],
+    ];
     /** @var bool $stopOnError */
     protected $stopOnError = true;
-
 
     /** @var string $output */
     protected $output;
@@ -85,36 +111,8 @@ class ProcessHelper
         } else {
             $logger = new ConsoleLogger(new ConsoleOutput());
         }
-        $defaults = [
 
-            self::PH_RUN_IN_SHELL       => false,
-            self::PH_TIMEOUT            => 60,
-            self::PH_DRY_RUN            => false,
-            self::PH_FIND_EXECUTABLE    => false,
-            self::PH_DIRECTORY          => '',
-            self::PH_ENV_VARS           => [],
-
-            self::PH_DISPLAY_PROGRESS   => false,
-            self::PH_DISABLE_OUTPUT     => false,
-            self::PH_DEFAULT_OUTPUT     => 'debug',
-            self::PH_OUTPUT_DEBUG       => [],
-            self::PH_OUTPUT_INFO        => [],
-            self::PH_OUTPUT_NOTICE      => [],
-            self::PH_OUTPUT_WARNING     => [],
-            self::PH_OUTPUT_ERROR       => [],
-            self::PH_OUTPUT_CRITICAL    => [],
-            self::PH_OUTPUT_ALERT       => [],
-            self::PH_OUTPUT_EMERGENCY   => [],
-            self::PH_OUTPUT_IGNORE      => [],
-
-            self::PH_OUTPUT_RAISE_ERROR => false,
-            self::PH_STOP_ON_ERROR      => true,
-            self::PH_EXCEPTION_ON_ERROR => false,
-            self::PH_EXIT_CODES_OK      => [],
-
-
-        ];
-        $this->readOptions($defaults, $this->defaultOptions);
+        $this->readOptions(self::DEFAULT_OPTIONS, $this->defaultOptions);
         $this->resetCommandOptions();
         $this->resetGlobalOptions();
     }
@@ -183,10 +181,10 @@ class ProcessHelper
      * 2/ array<string>               : [cmd, arg1, arg2, ...]
      * 3/ named commands with options : [ 'label' => 'This is command one', 'cmd' => command, 'opts' => array<string> ]
      *
-     *
-     * @param string|array<string>|array<array<string>|array<array<string,mixed>> $commands
-     * @param string                                                              $label
-     * @param array<string,string>                                                $cmdCtx
+     *           1        2
+     * @param string|array<string>|array<array<string>|array<array<string,mixed>>> $commands
+     * @param string                                                               $label
+     * @param array<string,string>                                                 $cmdCtx
      *
      * @return int
      */
@@ -259,8 +257,8 @@ class ProcessHelper
     /**
      * executes a command
      *
-     * @param array<string>        $command
-     * @param array<string,string> $logContext
+     * @param array<string>       $command
+     * @param array<string,mixed> $logContext
      *
      * @return int
      */
@@ -335,41 +333,18 @@ class ProcessHelper
      */
     protected function getValidOptions()
     {
-        return [
-            self::PH_RUN_IN_SHELL,
-            self::PH_TIMEOUT,
-            self::PH_DRY_RUN,
-            self::PH_FIND_EXECUTABLE,
-            self::PH_DIRECTORY,
-            self::PH_ENV_VARS,
-
-            self::PH_DISPLAY_PROGRESS,
-            self::PH_DISABLE_OUTPUT,
-            self::PH_DEFAULT_OUTPUT,
-            self::PH_OUTPUT_DEBUG,
-            self::PH_OUTPUT_INFO,
-            self::PH_OUTPUT_NOTICE,
-            self::PH_OUTPUT_WARNING,
-            self::PH_OUTPUT_ERROR,
-            self::PH_OUTPUT_CRITICAL,
-            self::PH_OUTPUT_ALERT,
-            self::PH_OUTPUT_EMERGENCY,
-            self::PH_OUTPUT_IGNORE,
-
-            self::PH_OUTPUT_RAISE_ERROR,
-            self::PH_STOP_ON_ERROR,
-            self::PH_EXCEPTION_ON_ERROR,
-            self::PH_EXIT_CODES_OK,
-        ];
+        return array_keys(self::DEFAULT_OPTIONS);
     }
-    /**
-     * read Options given in array
-     *
-     * @param array<string,bool|int> $opts
-     * @param array<string,bool|int> $tgtArray;
-     *
-     * @return void
-     */
+
+
+     /**
+      * merge options given to target array
+      *
+      * @param array<string,array<mixed>|bool|int|string> $opts
+      * @param array<string,array<mixed>|bool|int|string> $tgtArray
+      *
+      * @return void
+      */
     protected function readOptions($opts, &$tgtArray)
     {
         $validOptions = $this->getValidOptions();
