@@ -89,22 +89,20 @@ class ProcessHelper
     protected $logger;
 
     /** @var array<string,bool|int> */
-    protected $defaultOptions;
-
-    /** @var array<string,bool|int> */
     protected $globalOptions;
 
     /** @var array<string,bool|int> */
-    protected $commandOptions;
+    protected $commandOptions = [];
 
     /**
      * Constructor
      *
-     * @param LoggerInterface $logger
+     * @param LoggerInterface     $logger
+     * @param array<string,mixed> $options
      *
      * @return void
      */
-    public function __construct($logger = null)
+    public function __construct($logger = null, $options = [])
     {
         if ($logger) {
             $this->logger = $logger;
@@ -112,9 +110,8 @@ class ProcessHelper
             $logger = new ConsoleLogger(new ConsoleOutput());
         }
 
-        $this->readOptions(self::DEFAULT_OPTIONS, $this->defaultOptions);
-        $this->resetCommandOptions();
-        $this->resetGlobalOptions();
+        $this->globalOptions = self::DEFAULT_OPTIONS;
+        $this->mergeOptions($options, $this->globalOptions);
     }
     /**
      * Enable/disables progress bar display
@@ -267,6 +264,7 @@ class ProcessHelper
         //$cmd = $command;
 
         if ($this->getOptionValue(self::PH_RUN_IN_SHELL)) {
+            print "\n\nHERE !!!\n\n";
             $process = Process::fromShellCommandline(implode(' ', $command));
         } else {
             $process = new Process($command);
@@ -345,7 +343,7 @@ class ProcessHelper
       *
       * @return void
       */
-    protected function readOptions($opts, &$tgtArray)
+    protected function mergeOptions($opts, &$tgtArray)
     {
         $validOptions = $this->getValidOptions();
         foreach ($opts as $optName => $optValue) {
@@ -354,6 +352,7 @@ class ProcessHelper
             }
             $tgtArray[$optName] = $optValue;
         }
+
     }
     /**
      * read options for given command
@@ -364,7 +363,7 @@ class ProcessHelper
      */
     protected function readGlobalOptions($opts)
     {
-        $this->readOptions($opts, $this->globalOptions);
+        $this->mergeOptions($opts, $this->globalOptions);
     }
     /**
      * reset all command options
@@ -404,6 +403,8 @@ class ProcessHelper
      */
     protected function getOptionValue($optName)
     {
+        //print "GOV:: option=$optName\n";
+        //print "GOV:: ".print_r($this->globalOptions,true)."\n";
         if (!in_array($optName, $this->getValidOptions())) {
             throw new \Exception(sprintf("Unknown option : '%s'", $optName));
         }
@@ -413,7 +414,6 @@ class ProcessHelper
         if (array_key_exists($optName, $this->globalOptions)) {
             return $this->globalOptions[$optName];
         }
-
-        return $this->defaultOptions[$optName];
+        return self::DEFAULT_OPTIONS[$optName];
     }
 }
