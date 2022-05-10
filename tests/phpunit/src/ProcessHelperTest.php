@@ -13,13 +13,17 @@ namespace jmg\processHelperTests;
 use \Mockery;
 use PHPUnit\Framework\TestCase;
 use jmg\ProcessHelper\ProcessHelper as PH;
+use jmg\ProcessHelper\ProcessHelperOptions as PHO;
+
 use Psr\Log\Test\TestLogger;
 use jmg\processHelperTests\LogTesterTrait;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Process\Exception\ProcessTimedOutException;
 
 /**
  * @covers \jmg\ProcessHelper\ProcessHelper
  *
+ * @uses \jmg\ProcessHelper\ProcessHelperOptions
  */
 class ProcessHelperTest extends TestCase
 {
@@ -28,6 +32,15 @@ class ProcessHelperTest extends TestCase
     /** @var LoggerInterface $logger*/
     protected $logger;
 
+    /**
+     *
+     * {@inheritDoc}
+     * @see \PHPUnit\Framework\TestCase::tearDown()
+     */
+    protected function tearDown(): void
+    {
+        \Mockery::close();
+    }
    /**
      * @return array<string,mixed>
      */
@@ -39,26 +52,25 @@ class ProcessHelperTest extends TestCase
             [ 'err' => 'No config here'       ],
         ];
         $opts = [];
-        //                       exec,    output   rc,  runTime,
-        //                       Opts     lines
-        //$data['plain_run']    = [$opts   , $out,   0,   0           ];
 
-        $opts = [PH::PH_RUN_IN_SHELL => true];
-        $data['run_in_shell'] = [$opts   , $out,   0,   0           ];
+        $data['run_simple']   = [ []                                , $out,   0,   0           ];
+        $data['run_in_shell'] = [ [PHO::PH_RUN_IN_SHELL => true]    , $out,   0,   0           ];
+        $data['run_progress'] = [ [PHO::PH_DISPLAY_PROGRESS => true], $out,   0,   0           ];
+        $data['run_error']    = [ []                                , $out,   2,   0           ];
+        $data['run_timeout']  = [ []                                , $out,  -1,   0           ];
 
         return $data;
     }
    /**
      * Test execCommand method
-     * @param array<mixed>                $opts 
+     * @param array<mixed>                $opts
      * @param array<array<string,string>> $output
-     * @param int                         $runTime 
      * @param int                         $returnCode
+     * @param int                         $runTime
 
      *
      * @dataProvider dataExecCommand
      */
-  
     public function testExecCommand($opts, $output, $returnCode, $runTime): void
     {
         $this->logger = new TestLogger();
@@ -76,23 +88,22 @@ class ProcessHelperTest extends TestCase
         $this->showDebugLogs();
         $this->showNoDebugLogs();
     }
-    public function testExecCommand2(): void
+    /**
+     * Generator for output
+     *
+     * @param array<array<string,string>> $lines
+     *
+     * @return \Iterator<string>
+     */
+    protected static function generator($lines)
     {
-        $this->logger = new TestLogger();
-        $mockData = [
-            'lines'          => [ ['err' => 'foo']],
-            'timeout'        => 60,
-            'return_code'    => 0,
-            'exec_opts'      => [],
-        ];
-
-        $this->makeProcessMock($mockData);
-        $ph = new PH($this->logger);
-        $ph->execCommand(['ls', '-l', '/foobar/baz']);
-        $this->assertLogInfo('CMD = {cmd}', [ 'cmd' => '/path/to/cmd' ]);
-        $this->showDebugLogs();
-        $this->showNoDebugLogs();
+        foreach ($lines as $content) {
+            foreach ($content as $outputType => $line) {
+                yield $outputType => $line;
+            }
+        }
     }
+
     /**
      * get mock object for process
      * @param array<string,mixed> $mockData
@@ -103,35 +114,19 @@ class ProcessHelperTest extends TestCase
     {
         /** @var Mockery\Mock */
         $m = \Mockery::mock('overload:Symfony\Component\Process\Process')->makePartial();
-        /**
-         * Generator for output
-         *
-         * @param array<array<string,string>> $lines
-         *
-         * @return \Iterator<string>
-         */
-
-        $generator = function($lines) {
-            return function () use ($lines) {
-                foreach ($lines as $content) {
-                    foreach ($content as $outputType => $line) {
-                        yield $outputType => $line;
-                    }
-                }
-            };
-        };
         $options = $mockData['exec_opts'];
-        print_r($options);
-        print "EXISTS: ".print_r(array_key_exists(PH::PH_RUN_IN_SHELL, $options), true)."\n";
-        if (array_key_exists(PH::PH_RUN_IN_SHELL, $options) && true === $options[PH::PH_RUN_IN_SHELL]) {
+        if (array_key_exists(PHO::PH_RUN_IN_SHELL, $options) && true === $options[PHO::PH_RUN_IN_SHELL]) {
             $m->shouldReceive('fromShellCommandline')->andReturn($m);
         }
-        $m->shouldReceive('getIterator')->andReturn($generator($mockData['lines']));
+        $m->shouldReceive('getIterator')->andReturn(self::generator($mockData['lines']));
         $m->shouldReceive('getCommandLine')->andReturn('/path/to/cmd');
         $m->shouldReceive('start');
         /** @phpstan-ignore-next-line */
         $expect = $m->shouldReceive('setTimeout')->with($mockData['timeout']);
-        if (0 === $mockData['return_code']) {
+        if (-1 === $mockData['return_code']) {
+            $m->shouldReceive('getTimeout')->andReturn(60);
+            $m->shouldReceive('isSuccessful')->andThrow(new ProcessTimedOutException($m, 1));
+        } elseif (0 === $mockData['return_code']) {
             $m->shouldReceive('isSuccessful')->andReturn(true);
         } else {
             $m->shouldReceive('isSuccessful')->andReturn(false);
@@ -143,6 +138,7 @@ class ProcessHelperTest extends TestCase
             }
             $m->shouldReceive('getExitCodeText')->andReturn($exitText);
         }
+
         return $m;
     }
 }
