@@ -15,8 +15,8 @@
 		"php" : ">=7.3",
 		"composer/composer" : "~2.1",
 		"symfony/process": ">=4.0,<5",
-		"symfony/filesystem": ">=4.0",
-		"vlucas/phpdotenv": "^5",
+		"symfony/filesystem": ">=5.4",
+		"vlucas/phpdotenv": "^5.1",
 		"mefworks/string-interpolation": "^1.0",
 		"dgfip-si1/php-config-tree": "dev-main",
 		"dgfip-si1/test-logger": "dev-main"
