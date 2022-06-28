@@ -1,6 +1,6 @@
 parameters:
-  level: 6
-  tmpDir: ./tmp
+  level: 9
+  tmpDir: ./tests/phpstan
   paths:
     - src
     - tests/phpunit/src

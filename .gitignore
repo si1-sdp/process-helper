@@ -1,4 +1,6 @@
+composer.lock
 /vendor/
 /tmp/
 /tests/phpunit/.phpunit.cache
 /tests/results/
+/tests/phpstan
