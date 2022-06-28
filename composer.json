@@ -40,5 +40,10 @@
 		"psr-4": {
 			"DgfipSI1\\processHelperTests\\": "tests/phpunit/src"
 		}
+	},
+	"scripts": {
+		"test":    "vendor/bin/phpunit",
+		"phpstan": "vendor/bin/phpstan",
+		"phpcs":   "vendor/bin/phpcs"
 	}
 }
