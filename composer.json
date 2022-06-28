@@ -1,12 +1,11 @@
 {
 	"name" : "dgfip-si1/process-helper",
-	"description" : "symfony process wrapper - Execute many processes, manage logs - interplates on command strings",
+	"description" : "symfony process wrapper",
 	"type" : "library",
 	"license" : "GPL-3.0-or-later",
 	"authors": [
 		{
 			"name" : "Jean-Marie Gervais",
-			"email" : "jm.gervais@gmail.com"
 		}
 	],
 	"keywords" : [
@@ -15,12 +14,12 @@
 	"require" : {
 		"php" : ">=7.3",
 		"composer/composer" : "~2.1",
-		"symfony/process": "^6",
-		"symfony/filesystem": "^6",
-                "vlucas/phpdotenv": "^5",
+		"symfony/process": ">=4.0,<5",
+		"symfony/filesystem": ">=4.0",
+		"vlucas/phpdotenv": "^5",
 		"mefworks/string-interpolation": "^1.0",
-                "dgfip-si1/php-config-tree": "dev-main",
-                "jmg/test-logger": "dev-main"
+		"dgfip-si1/php-config-tree": "dev-main",
+		"dgfip-si1/test-logger": "dev-main"
 	},	
 	"require-dev": {
 		"phpstan/phpstan": "^1",

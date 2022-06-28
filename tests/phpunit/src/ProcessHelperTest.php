@@ -1,11 +1,7 @@
 <?php
 /*
- * This file is part of jmg/ProcessHelper.
+ * This file is part of dgfip-si1/process-helper.
  *
- * (c) Jean-Marie Gervais jm.gervais@gmail.com
- *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
  */
 
 namespace jmg\processHelperTests;
@@ -13,8 +9,8 @@ namespace jmg\processHelperTests;
 use \Mockery;
 use DgfipSI1\ProcessHelper\ProcessHelper as PH;
 use DgfipSI1\ProcessHelper\ProcessHelperOptions as PHO;
-use jmg\testLogger\LogTestCase;
-use jmg\testLogger\TestLogger;
+use DgfipSI1\testLogger\LogTestCase;
+use DgfipSI1\testLogger\TestLogger;
 use DgfipSI1\ConfigTree\ConfigTree;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
