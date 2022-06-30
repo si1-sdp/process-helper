@@ -44,6 +44,7 @@ class ProcessHelperOptions extends ConfigTree
     public function __construct($options = [])
     {
         $schemaFile = dirname(__FILE__)."/../res/optionSchema.json";
-        parent::__construct($schemaFile, $options);
+        parent::__construct($schemaFile);
+        $this->merge($options);
     }
 }
