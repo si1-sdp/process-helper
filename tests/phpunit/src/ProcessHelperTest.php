@@ -191,7 +191,9 @@ class ProcessHelperTest extends LogTestCase
          * Timeout option
          */
         $this->assertEquals(60, $options->get(PHO::TIMEOUT));
-        $p = $ph->setTimeout(120);
+        $this->assertFalse($options->get(PHO::RUN_IN_SHELL));
+        $p = $ph->setTimeout(120)->runInShell(true);
+        $this->assertTrue($options->get(PHO::RUN_IN_SHELL));
         $this->assertEquals(120, $options->get(PHO::TIMEOUT));
         $this->assertEquals($ph, $p);
     }

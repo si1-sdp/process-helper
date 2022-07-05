@@ -74,6 +74,18 @@ class ProcessHelper
     }
     /**
      *
+     * @param bool $runInShell
+     *
+     * @return ProcessHelper
+     */
+    public function runInShell($runInShell)
+    {
+        $this->globalOptions->set(PHO::RUN_IN_SHELL, $runInShell);
+
+        return $this;
+    }
+    /**
+     *
      * @param string $output
      * @param string $stdout
      * @param string $stderr
