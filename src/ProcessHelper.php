@@ -85,6 +85,29 @@ class ProcessHelper
         return $this;
     }
     /**
+     * set Environment parameters
+     *
+     * @param array<string,mixed> $env
+     * @param boolean             $useAppEnv
+     * @param boolean             $useDotEnv
+     * @param string              $dotEnvDir
+     *
+     * @return self
+     */
+    public function setEnv($env = [], $useAppEnv = true, $useDotEnv = false, $dotEnvDir = '.')
+    {
+        $this->globalOptions->set(PHO::ENV_VARS, $env);
+        $this->globalOptions->set(PHO::USE_APPENV, $useAppEnv);
+        $this->globalOptions->set(PHO::USE_DOTENV, $useDotEnv);
+        // don't override dotenv directory if useDotEnv is false
+        if ($useDotEnv) {
+            $this->globalOptions->set(PHO::DOTENV_DIR, $dotEnvDir);
+        }
+
+        return $this;
+    }
+
+    /**
      *
      * @param string $output
      * @param string $stdout
