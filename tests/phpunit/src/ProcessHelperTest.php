@@ -253,30 +253,7 @@ class ProcessHelperTest extends LogTestCase
             $this->assertArrayHasKey($var, $outputVars, "Missing environment variable : $var");
             $this->assertEquals($value, $outputVars[$var], "Unexpected value for variable : $var");
         }
-        $ph->setEnv($extraEnv, true, false);
-        $ph->execCommand(['env']);
-        $outputVars = [];
-        foreach ($ph->getOutput() as $line) {
-            $sep = strpos($line, '=');
-            if ($sep) {
-                $key   = substr($line, 0, $sep);
-                $value = substr($line, $sep + 1);
-                $outputVars[$key] = $value;
-            }
-        }
-        $expected = [
-            "BASE_DIR" => "/foo/bar",
-            'var1' => 'var1_value',
-            'var2' => 'var2_value',
-            'process_arg_a' => true,
-            'process_arg_b' => 'blabla',
-            'process_arg_c' => 'foo',
-        ];
-        foreach ($expected as $var => $value) {
-            $this->assertArrayHasKey($var, $outputVars, "Missing environment variable : $var");
-            $this->assertEquals($value, $outputVars[$var], "Unexpected value for variable : $var");
-        }
-
+        
     }
 
 
