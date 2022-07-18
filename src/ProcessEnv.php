@@ -40,17 +40,11 @@ class ProcessEnv
         if (true === $dotEnv && true === $loadDotEnv) {
             $result = \Dotenv\Dotenv::createImmutable($rootDir)->safeLoad();
         } else {
-            $dotEnvFile = Path::join($rootDir, ".env");
-            if (file_exists($dotEnvFile)) {
-                $content = file_get_contents($dotEnvFile);
-                if ($content) {
-                    $dotEnvVars = \Dotenv\Dotenv::parse($content);
-                    if (true === $dotEnv) {
-                        $result = $dotEnvVars;
-                    } else {
-                        $absentKeys = array_keys($dotEnvVars);
-                    }
-                }
+            $dotEnvVars = self::parseDotEnv($rootDir);
+            if (true === $dotEnv) {
+                $result = $dotEnvVars;
+            } else {
+                $absentKeys = array_keys($dotEnvVars);
             }
         }
         if (true === $appEnv) {
@@ -67,5 +61,25 @@ class ProcessEnv
         }
 
         return $result;
+    }
+    /**
+     * parseDotEnv file
+     *
+     * @param string $rootDir
+     *
+     * @return array<string,string|null>
+     */
+    protected static function parseDotEnv($rootDir)
+    {
+        $dotEnvVars = [];
+        $dotEnvFile = Path::join($rootDir, ".env");
+        if (file_exists($dotEnvFile)) {
+            $content = file_get_contents($dotEnvFile);
+            if ($content) {
+                $dotEnvVars = \Dotenv\Dotenv::parse($content);
+            }
+        }
+
+        return $dotEnvVars;
     }
 }
