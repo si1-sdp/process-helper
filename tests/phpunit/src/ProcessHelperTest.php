@@ -12,17 +12,27 @@ use DgfipSI1\ProcessHelper\ProcessHelperOptions as PHO;
 use DgfipSI1\testLogger\LogTestCase;
 use DgfipSI1\testLogger\TestLogger;
 use DgfipSI1\ConfigTree\ConfigTree;
+use DgfipSI1\ProcessHelper\Exception\BadOptionException;
+use DgfipSI1\ProcessHelper\Exception\BadSearchException;
+use DgfipSI1\ProcessHelper\Exception\ExecNotFoundException;
+use DgfipSI1\ProcessHelper\Exception\ProcessException;
+use DgfipSI1\ProcessHelper\Exception\UnknownOutputTypeException;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
-use Psr\Log\LoggerInterface;
 use ReflectionClass;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;
 
 /**
  * @covers \DgfipSI1\ProcessHelper\ProcessHelper
  * @covers \DgfipSI1\ProcessHelper\ProcessHelperOptions
+ * @covers \DgfipSI1\ProcessHelper\Exception\BadOptionException
+ * @covers \DgfipSI1\ProcessHelper\Exception\BadSearchException
+ * @covers \DgfipSI1\ProcessHelper\Exception\ExecNotFoundException
+ * @covers \DgfipSI1\ProcessHelper\Exception\ProcessException
+ * @covers \DgfipSI1\ProcessHelper\Exception\UnknownOutputTypeException
  *
  * @uses \DgfipSI1\ProcessHelper\ProcessEnv
+ * @uses \DgfipSI1\ProcessHelper\ProcessOutput
  */
 class ProcessHelperTest extends LogTestCase
 {
@@ -58,7 +68,6 @@ class ProcessHelperTest extends LogTestCase
             [ 'err' => '3' ],
         ];
         $data['run_out_silent']   = [[PHO::OUTPUT_MODE => 'silent']                                     , $out,  0, 0];
-        //$data['run_out_progress'] = [[PHO::OUTPUT_MODE => 'progress']                                 , $out,  0, 0];
         $data['run_outerr_err']   = [[PHO::OUTPUT_MODE => 'on_error', PHO::EXCEPTION_ON_ERROR => false] , $out,  1, 0];
         $data['run_outerr_throw'] = [[PHO::OUTPUT_MODE => 'on_error']                                   , $out,  1, 0];
         $data['run_outerr_ok']    = [[PHO::OUTPUT_MODE => 'on_error']                                   , $out,  0, 0];
@@ -98,7 +107,7 @@ class ProcessHelperTest extends LogTestCase
         $eMsg = '';
         try {
             $ph->execCommand(explode(' ', $cmd));
-        } catch (\Exception $e) {
+        } catch (ProcessException $e) {
             $eMsg = $e->getMessage();
         }
         $throwError = !array_key_exists(PHO::EXCEPTION_ON_ERROR, $opts) || $opts[PHO::EXCEPTION_ON_ERROR];
@@ -159,11 +168,18 @@ class ProcessHelperTest extends LogTestCase
     public function testOptionSetters(): void
     {
         $ph = new PH();
+
         $reflector = new ReflectionClass('DgfipSI1\ProcessHelper\ProcessHelper');
         $prop = $reflector->getProperty('globalOptions');
         $prop->setAccessible(true);
         /** @var ConfigTree $options */
         $options = $prop->getValue($ph);
+
+        $log = $reflector->getProperty('logger');
+        $log->setAccessible(true);
+        $logger = $log->getValue($ph);
+        /** @var object $logger */
+        $this->assertEquals('Symfony\Component\Console\Logger\ConsoleLogger', get_class($logger));
         /*
          * Output options
          */
@@ -176,14 +192,14 @@ class ProcessHelperTest extends LogTestCase
         $message = '';
         try {
             $ph->setOutput('i_dont_exist');
-        } catch (\Exception $e) {
+        } catch (BadOptionException $e) {
             $message = $e->getMessage();
         }
         $this->assertMatchesRegularExpression('/Output option .* does not exists/', $message);
         $message = '';
         try {
             $ph->setOutput('default', 'i_dont_exist');
-        } catch (\Exception $e) {
+        } catch (BadOptionException $e) {
             $message = $e->getMessage();
         }
         $this->assertMatchesRegularExpression('/Unavailable output channel/', $message);
@@ -208,7 +224,7 @@ class ProcessHelperTest extends LogTestCase
         $msg = '';
         try {
             $ph->getOutput('i_dont_exist');
-        } catch (\Exception $e) {
+        } catch (UnknownOutputTypeException $e) {
             $msg = $e->getMessage();
         }
         $this->assertEquals('ProcessHelper:getOutput: Unkown type i_dont_exist', $msg);
@@ -253,7 +269,6 @@ class ProcessHelperTest extends LogTestCase
             $this->assertArrayHasKey($var, $outputVars, "Missing environment variable : $var");
             $this->assertEquals($value, $outputVars[$var], "Unexpected value for variable : $var");
         }
-        
     }
 
 
@@ -285,8 +300,8 @@ class ProcessHelperTest extends LogTestCase
         $ph = new PH($this->logger, $opts);
         $message = '';
         try {
-            $ph->execCommand(['my_program', '-s'], [], $opts);
-        } catch (\Exception $e) {
+            $ph->execCommand(['my_program', '-s'], $opts);
+        } catch (ExecNotFoundException $e) {
              $message = $e->getMessage();
         }
         $this->assertMatchesRegularExpression("/^executable .[a-z_]+. not found/", $message);
@@ -297,7 +312,7 @@ class ProcessHelperTest extends LogTestCase
         $ph = new PH($this->logger, $opts);
         $message = '';
         try {
-            $ph->execCommand(['my_program', '-s'], [], $opts);
+            $ph->execCommand(['my_program', '-s'], $opts);
         } catch (\Exception $e) {
              $message = $e->getMessage();
         }
@@ -325,7 +340,7 @@ class ProcessHelperTest extends LogTestCase
         // set a return code of -1 to raise an exception if called
         $this->makeProcessMock('cmd', $opts, 1, $output);
         $ph = new PH($this->logger, $opts);
-        $ph->execCommand(['my_program', '-s'], [], $opts);
+        $ph->execCommand(['my_program', '-s'], $opts);
         $this->assertNoticeInLog('DRY-RUN - execute command');
     }
 
@@ -360,14 +375,14 @@ class ProcessHelperTest extends LogTestCase
         $message = '';
         try {
             $ph->resetMatches('baz');
-        } catch (\Exception $e) {
+        } catch (BadSearchException $e) {
             $message = $e->getMessage();
         }
         $this->assertMatchesRegularExpression("#resetMatches: No match on variable#", $message);
         $message = '';
         try {
             $ph->getMatches('baz');
-        } catch (\Exception $e) {
+        } catch (BadSearchException $e) {
             $message = $e->getMessage();
         }
         $this->assertMatchesRegularExpression("#getMatches: Can't search for a match on variable#", $message);
