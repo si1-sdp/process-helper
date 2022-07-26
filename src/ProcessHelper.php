@@ -13,6 +13,7 @@ use DgfipSI1\ProcessHelper\Exception\BadSearchException;
 use DgfipSI1\ProcessHelper\Exception\ExecNotFoundException;
 use DgfipSI1\ProcessHelper\Exception\ProcessException;
 use DgfipSI1\ProcessHelper\Exception\UnknownOutputTypeException;
+use DgfipSI1\ConfigTree\ConfigTree;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Filesystem\Path;
 use Symfony\Component\Console\Logger\ConsoleLogger;
@@ -143,6 +144,7 @@ class ProcessHelper
     {
         /** @var array<string,mixed> */
         $searches = $this->globalOptions->get(PHO::OUTPUT_RE_SEARCHES);
+
         $searches[] = [ 'name' => $name, 'regexp' => $re];
         $this->globalOptions->set(PHO::OUTPUT_RE_SEARCHES, $searches);
         $this->matches[$name] = [];
@@ -277,7 +279,6 @@ class ProcessHelper
         }
         $processOutput = new ProcessOutput($opts, $this->logger, $logContext);
         try {
-            $lastLine = '';
             $process->start();
             $iterator = $process->getIterator();
             /** @var string $type */
@@ -363,11 +364,7 @@ class ProcessHelper
         $processOutput->closeProgress();
         if (!$process->isSuccessful()) {
             if ('on_error' === $opts->get(PHO::OUTPUT_MODE)) {
-                foreach ($this->output as $line) {
-                    foreach ($line as $type => $msg) {
-                        $processOutput->logOutput($type, $msg, true);
-                    }
-                }
+                $this->outputToLog($processOutput);
             }
             $processOutput->log('error', ''.$process->getExitCodeText());
             $this->returnCode = 0 + $process->getExitCode();
@@ -385,12 +382,24 @@ class ProcessHelper
                 $processOutput->log('notice', "IGNORED: ".$err);
             }
         } else {
-            if ($opts->get(PHO::OUTPUT_MODE) !== 'silent') {
-                $processOutput->log('notice', "command was successfull !");
+            $processOutput->log('notice', "command was successfull !");
+        }
+    }
+    /**
+     * send all output to logger
+     *
+     * @param ProcessOutput $processOutput
+     *
+     * @return void
+     */
+    protected function outputToLog($processOutput)
+    {
+        foreach ($this->output as $line) {
+            foreach ($line as $type => $msg) {
+                $processOutput->logOutput($type, $msg, true);
             }
         }
     }
-
     /**
      * Search line for matching regexp, set $this->matches accordingly
      *

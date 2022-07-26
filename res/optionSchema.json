@@ -1,7 +1,7 @@
 {
     "$schema": "http://json-schema.org/draft-04/schema#",
     "name": "Process Helper Configuration",
-    "type": "array",
+    "type": "object",
     "additionalProperties": false,
     "properties": {
         "run-in-shell": {
@@ -30,7 +30,7 @@
             "description": "Directory where process shoud run"
         },        
         "output": {
-            "type": "array",
+            "type": "object",
             "description": "output options",
             "properties": {
                 "mode": {
@@ -55,11 +55,11 @@
             "additionalProperties": false
         },
         "environment": {
-            "type": "array",
+            "type": "object",
             "description": "output options",
             "properties": {
                 "extra-vars": {
-                    "type": "array",
+                    "type": "object",
                     "default": [],
                     "description": "This is a hash of variable names (keys) and values to pass as environment for the process.",
                     "minProperties": 0,
@@ -86,7 +86,7 @@
             }
         },
         "exceptions": {
-            "type": "array",
+            "type": "object",
             "description": "exception handling",
             "properties": {
                 "throw-on-error": {
@@ -106,16 +106,21 @@
             }
         },
         "output-re-searches": {
+            "additionalProperties": false,
             "type": "array",
+            "default": [],
             "description": "List of regexp to search in process output.",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Variable name to store matches."
-                },
-                "regexp": {
-                    "type": "string",
-                    "description": "Regexp to search for. It should have a (...) to set match."
+            "items" : {
+                "type" : "object",
+                "properties" : {
+                    "name": {
+                        "type": "string",
+                        "description": "Variable name to store matches."
+                    },
+                    "regexp": {
+                        "type": "string",
+                        "description": "Regexp to search for. It should have a (...) to set match."
+                    }
                 }
             }
         }
