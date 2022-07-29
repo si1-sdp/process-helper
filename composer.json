@@ -18,8 +18,7 @@
 		"symfony/filesystem": ">=5.4",
 		"vlucas/phpdotenv": "^5.1",
 		"mefworks/string-interpolation": "^1.0",
-		"dgfip-si1/php-config-tree": "dev-main",
-		"dgfip-si1/test-logger": "dev-main"
+		"dgfip-si1/php-config-tree": "1.0-alpha3"
 	},	
 	"require-dev": {
 		"phpstan/phpstan": "^1",
@@ -27,7 +26,8 @@
 		"escapestudios/symfony2-coding-standard": "3.x-dev",
 		"phpunit/phpunit": "^9.5",
 		"mockery/mockery": "^1.4",
-		"mikey179/vfsstream": "^1.6, >=1.6.7"
+		"mikey179/vfsstream": "^1.6, >=1.6.7",
+		"dgfip-si1/test-logger": "1.0-alpha2"
 	},
 	"minimum-stability" : "dev",
 	"prefer-stable" : true,
