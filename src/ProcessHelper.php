@@ -59,6 +59,7 @@ class ProcessHelper
             $logger = new ConsoleLogger(new ConsoleOutput());
         }
         $this->logger = $logger;
+        $this->output = [];
         $this->globalOptions = new ProcessHelperOptions($options);
     }
     /**
