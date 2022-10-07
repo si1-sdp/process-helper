@@ -9,7 +9,7 @@ namespace jmg\processOutputTests;
 
 use ReflectionClass;
 use DgfipSI1\testLogger\TestLogger;
-use DgfipSI1\ProcessHelper\ProcessHelperOptions as PHO;
+use DgfipSI1\ProcessHelper\ConfigSchema as CONF;
 use DgfipSI1\ProcessHelper\ProcessHelperOptions;
 use DgfipSI1\ProcessHelper\ProcessOutput;
 use DgfipSI1\testLogger\LogTestCase;
@@ -20,6 +20,7 @@ use Symfony\Component\Console\Helper\ProgressBar;
  *
  * @uses DgfipSI1\ProcessHelper\ProcessHelper
  * @uses DgfipSI1\ProcessHelper\ProcessHelperOptions
+ * @uses \DgfipSI1\ProcessHelper\ConfigSchema
  */
 class ProcessOutputTest extends LogTestCase
 {
@@ -30,7 +31,7 @@ class ProcessOutputTest extends LogTestCase
      */
     public function testProgressBar(): void
     {
-        $this->initTest('progress');
+        $this->runOutputTest('progress');
         $this->assertNotNull($this->bar);
 
         $this->assertEquals(3, $this->bar->getProgress());
@@ -44,7 +45,7 @@ class ProcessOutputTest extends LogTestCase
      */
     public function testSilentOutput(): void
     {
-        $output = $this->initTest('silent');
+        $output = $this->runOutputTest('silent');
         $this->assertNull($this->bar);
         $this->assertNoMoreProdMessages();
     }
@@ -53,7 +54,7 @@ class ProcessOutputTest extends LogTestCase
      */
     public function testDefaultOutput(): void
     {
-        $this->initTest('default');
+        $this->runOutputTest('default');
         $this->assertNull($this->bar);
         $this->assertInfoInLog("line1");
         $this->assertInfoInLog("line2");
@@ -67,7 +68,7 @@ class ProcessOutputTest extends LogTestCase
      */
     public function testOnErrorOutput(): void
     {
-        $this->initTest('on_error');
+        $this->runOutputTest('on_error');
         $this->assertNull($this->bar);
         $this->assertInfoInLog("line3");
         $this->assertInfoInLog("line4");
@@ -76,16 +77,16 @@ class ProcessOutputTest extends LogTestCase
     }
 
     /**
-     * run test
+     * init test
      *
      * @param string $mode
      *
      * @return ProcessOutput
      */
-    protected function initTest($mode)
+    protected function runOutputTest($mode)
     {
         $this->logger = new TestLogger();
-        $opts   = new ProcessHelperOptions([PHO::OUTPUT_MODE => $mode]);
+        $opts   = new ProcessHelperOptions([CONF::OUTPUT_MODE => $mode]);
         $output = new ProcessOutput($opts, $this->logger, []);
         $reflector = new ReflectionClass('DgfipSI1\ProcessHelper\ProcessOutput');
         $prop = $reflector->getProperty('bar');

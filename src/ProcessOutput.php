@@ -3,14 +3,14 @@
 declare(strict_types=1);
 
 /*
- * This file is part of deslp
+ * This file is part of dgfip-si1/process-helper
  */
 
 namespace DgfipSI1\ProcessHelper;
 
 use Symfony\Component\Console\Helper\ProgressBar as HelperProgressBar;
 use Symfony\Component\Console\Output\ConsoleOutput;
-use DgfipSI1\ProcessHelper\ProcessHelperOptions as PHO;
+use DgfipSI1\ProcessHelper\ConfigSchema as CONF;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -49,9 +49,10 @@ class ProcessOutput
      */
     public function __construct($opts, $logger, $logContext)
     {
-        $this->outputMode = "".$opts->get(PHO::OUTPUT_MODE);
-        $this->errChannel = "".$opts->get(PHO::OUTPUT_STDERR_TO);
-        $this->outChannel = "".$opts->get(PHO::OUTPUT_STDOUT_TO);
+        $this->outputMode = "".$opts->get(CONF::OUTPUT_MODE);
+
+        $this->errChannel = "".$opts->get(CONF::OUTPUT_STDERR_TO);
+        $this->outChannel = "".$opts->get(CONF::OUTPUT_STDOUT_TO);
         $this->logger     = $logger;
         $this->logContext = $logContext;
         if ('progress' === $this->outputMode) {

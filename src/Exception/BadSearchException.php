@@ -1,6 +1,6 @@
 <?php
 /*
- * This file is part of PhpConfigTree
+ * This file is part of dgfip-si1/process-helper
  */
 namespace DgfipSI1\ProcessHelper\Exception;
 

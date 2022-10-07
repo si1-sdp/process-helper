@@ -17,6 +17,7 @@ use DgfipSI1\ProcessHelper\ProcessEnv;
  *
  * @uses DgfipSI1\ProcessHelper\ProcessHelper
  * @uses DgfipSI1\ProcessHelper\ProcessHelperOptions
+ * @uses \DgfipSI1\ProcessHelper\ConfigSchema
  */
 class ProcessEnvTest extends TestCase
 {

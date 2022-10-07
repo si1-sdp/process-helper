@@ -3,39 +3,19 @@
 declare(strict_types=1);
 
 /*
- * This file is part of deslp
+ * This file is part of dgfip-si1/process-helper
  */
 
 namespace DgfipSI1\ProcessHelper;
 
-use DgfipSI1\ConfigTree\ConfigTree;
+use DgfipSI1\ConfigHelper\ConfigHelper;
 
 /**
  * ProcessHelperOptions
  */
-class ProcessHelperOptions extends ConfigTree
+class ProcessHelperOptions extends ConfigHelper
 {
-    const RUN_IN_SHELL            = 'run-in-shell';
-    const TIMEOUT                 = 'timeout';
-    const DRY_RUN                 = 'dry-run';
-    const FIND_EXECUTABLE         = 'find-executable';
-    const DIRECTORY               = 'directory';
 
-    // OUTPUT PROCESSING
-    const OUTPUT_OPTIONS_LIST     = [ 'silent', 'progress', 'default', 'on_error', 'custom'];
-    const OUTPUT_MODE             = 'output.mode';
-    const OUTPUT_STDOUT_TO        = 'output.stdout-to';
-    const OUTPUT_STDERR_TO        = 'output.stderr-to';
-
-    // ENVIRONMENT VARIABLES
-    const ENV_VARS                = 'environment.extra-vars';
-    const USE_DOTENV              = 'environment.use-dotenv-vars';
-    const DOTENV_DIR              = 'environment.dotenv-dir';
-    const USE_APPENV              = 'environment.use-appenv-vars';
-
-    const OUTPUT_RE_SEARCHES      = 'output-re-searches';
-    const EXCEPTION_ON_ERROR      = 'exceptions.throw-on-error';
-    const EXIT_CODES_OK           = 'exceptions.exit-codes-ok';
     /**
      * Consructor
      *
@@ -43,8 +23,10 @@ class ProcessHelperOptions extends ConfigTree
      */
     public function __construct($options = [])
     {
-        $schemaFile = dirname(__FILE__)."/../res/optionSchema.json";
-        parent::__construct($schemaFile);
-        $this->merge($options);
+
+        //$schemaFile = dirname(__FILE__)."/../res/optionSchema.json";
+        parent::__construct(new ConfigSchema());
+        $this->addArray(self::DEFAULT_CONTEXT, $options);
+        $this->setActiveContext('command');
     }
 }
