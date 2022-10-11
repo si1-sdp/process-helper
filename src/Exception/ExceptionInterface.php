@@ -5,7 +5,7 @@
 namespace DgfipSI1\ProcessHelper\Exception;
 
 /**
- * Exception interface for all exceptions thrown by PhpConfigTree
+ * Exception interface for all exceptions thrown by dgfip-si1/process-helper
  */
 interface ExceptionInterface extends \Throwable
 {

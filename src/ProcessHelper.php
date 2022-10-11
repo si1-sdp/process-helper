@@ -69,7 +69,7 @@ class ProcessHelper
      */
     public function printOptions()
     {
-        $this->conf->dumpConfig();
+        print $this->conf->dumpConfig();
     }
     /**
      *
