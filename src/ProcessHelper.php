@@ -454,10 +454,8 @@ class ProcessHelper
             $searchIn = $reSearch['type'];
 
             $m     = [];
-            if (preg_match("/$re/", $line, $m)) {
-                if (null === $searchIn || $type === $searchIn) {
-                    $this->matches["$name"][] = $m[1];
-                }
+            if (preg_match("/$re/", $line, $m) && (null === $searchIn || $type === $searchIn)) {
+                $this->matches["$name"][] = $m[1];
             }
         }
     }
