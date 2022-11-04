@@ -60,7 +60,7 @@ class ConfigSchema implements ConfigurationInterface
      */
     public function getConfigTreeBuilder()
     {
-        $treeBuilder = new TreeBuilder('process');
+        $treeBuilder = new TreeBuilder('');
         $treeBuilder->getRootNode()->children()
                 ->booleanNode(self::RUN_IN_SHELL)->defaultValue(false)
                     ->info("If true, run process in shell (see symfony/process documentation).")->end()
