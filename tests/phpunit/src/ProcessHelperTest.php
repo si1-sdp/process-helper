@@ -383,13 +383,19 @@ class ProcessHelperTest extends LogTestCase
         $output[] = [ 'out' => 'foo=2'];
         $output[] = [ 'out' => 'bar=3'];
         $output[] = [ 'out' => 'foo=5'];
+        $output[] = [ 'err' => 'foobar_err'];
+        $output[] = [ 'out' => 'foobar_out'];
         $this->makeProcessMock('cmd', [], 0, $output);
         $ph = new PH($this->logger, []);
         $ph->addSearch('foo', 'foo=(.*)');
         $ph->addSearch('bar', 'bar=(.*)');
+        $ph->addSearch('foobar', 'foobar_(.*)', 'err');
+
         $ph->execCommand(['ls', '-l', '/foobar/baz']);
         $this->assertEquals([2, 5], $ph->getMatches('foo'));
         $this->assertEquals([3], $ph->getMatches('bar'));
+        $this->assertEquals(['err'], $ph->getMatches('foobar'));
+
         $ph->resetMatches('foo');
         $this->assertEmpty($ph->getMatches('foo'));
         $this->assertEquals([3], $ph->getMatches('bar'));
@@ -418,6 +424,13 @@ class ProcessHelperTest extends LogTestCase
             $message = $e->getMessage();
         }
         $this->assertMatchesRegularExpression("#getMatches: Can't search for a match on variable#", $message);
+        $message = '';
+        try {
+            $ph->addSearch('foobar', 'foobar_(.*)', 'this_is_not_in_enum');
+        } catch (\Exception $e) {
+            $message = $e->getMessage();
+        }
+        $this->assertMatchesRegularExpression('#Permissible values: "out", "err", null#', $message);
     }
     /**
      * tests the printOptions method
@@ -487,7 +500,7 @@ class ProcessHelperTest extends LogTestCase
             $m->shouldReceive('getExitCode')->andReturn($returnCode);           /* @phpstan-ignore-line */
             $m->shouldReceive('getExitCodeText')->andReturn($exitText);         /* @phpstan-ignore-line */
         }
-//print_r($m);
+
         return $m;
     }
 }

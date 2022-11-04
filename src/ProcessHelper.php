@@ -150,17 +150,18 @@ class ProcessHelper
     /**
      * Add a regexp search on output
      *
-     * @param string $name
-     * @param string $re
+     * @param string      $name
+     * @param string      $re
+     * @param string|null $type // 'out' or 'err'
      *
      * @return void
      */
-    public function addSearch($name, $re)
+    public function addSearch($name, $re, $type = null)
     {
         /** @var array<string,mixed> */
         $searches = $this->conf->get(CONF::OUTPUT_RE_SEARCHES);
 
-        $searches[] = [ 'name' => $name, 'regexp' => $re];
+        $searches[] = [ 'name' => $name, 'regexp' => $re, 'type' => $type];
         $this->conf->contextSet('searches', CONF::OUTPUT_RE_SEARCHES, $searches);
         $this->matches[$name] = [];
         $this->conf->build();
@@ -438,21 +439,25 @@ class ProcessHelper
      * Search line for matching regexp, set $this->matches accordingly
      *
      * @param string               $line
-     * @param string               $type 'out' | 'err'
+     * @param string|null          $type 'out' | 'err'
      * @param ProcessHelperOptions $opts
 
      * @return void
      */
     protected function search($line, $type, $opts)
     {
-        /** @var array<array<string,string>> $searches */
+        /** @var array<array<string,string|null>> $searches */
         $searches = $opts->get(CONF::OUTPUT_RE_SEARCHES);
         foreach ($searches as $reSearch) {
-            $name  = $reSearch['name'];
-            $re    = $reSearch['regexp'];
+            $name     = $reSearch['name'];
+            $re       = $reSearch['regexp'];
+            $searchIn = $reSearch['type'];
+
             $m     = [];
             if (preg_match("/$re/", $line, $m)) {
-                $this->matches["$name"][] = $m[1];
+                if (null === $searchIn || $type === $searchIn) {
+                    $this->matches["$name"][] = $m[1];
+                }
             }
         }
     }

@@ -28,9 +28,9 @@ class ConfigSchema implements ConfigurationInterface
     private const OUTPUT_MODE_OPT         = 'mode';
     private const OUTPUT_STDOUT_TO_OPT    = 'stdout_to';
     private const OUTPUT_STDERR_TO_OPT    = 'stderr_to';
-    public const OUTPUT_MODE             = self::OUTPUT_GROUP.'.'.self::OUTPUT_MODE_OPT;
-    public const OUTPUT_STDOUT_TO        = self::OUTPUT_GROUP.'.'.self::OUTPUT_STDOUT_TO_OPT;
-    public const OUTPUT_STDERR_TO        = self::OUTPUT_GROUP.'.'.self::OUTPUT_STDERR_TO_OPT;
+    public const OUTPUT_MODE              = self::OUTPUT_GROUP.'.'.self::OUTPUT_MODE_OPT;
+    public const OUTPUT_STDOUT_TO         = self::OUTPUT_GROUP.'.'.self::OUTPUT_STDOUT_TO_OPT;
+    public const OUTPUT_STDERR_TO         = self::OUTPUT_GROUP.'.'.self::OUTPUT_STDERR_TO_OPT;
 
     // ENVIRONMENT VARIABLES
     private const ENVIRONMENT_GROUP       = 'environment';
@@ -39,10 +39,10 @@ class ConfigSchema implements ConfigurationInterface
     private const DOTENV_DIR_OPT          = 'dotenv_dir';
     private const USE_APPENV_OPT          = 'use_appenv_vars';
 
-    public const ENV_VARS                = self::ENVIRONMENT_GROUP.'.'.self::ENV_VARS_OPT;
-    public const USE_DOTENV              = self::ENVIRONMENT_GROUP.'.'.self::USE_DOTENV_OPT;
-    public const DOTENV_DIR              = self::ENVIRONMENT_GROUP.'.'.self::DOTENV_DIR_OPT;
-    public const USE_APPENV              = self::ENVIRONMENT_GROUP.'.'.self::USE_APPENV_OPT;
+    public const ENV_VARS                 = self::ENVIRONMENT_GROUP.'.'.self::ENV_VARS_OPT;
+    public const USE_DOTENV               = self::ENVIRONMENT_GROUP.'.'.self::USE_DOTENV_OPT;
+    public const DOTENV_DIR               = self::ENVIRONMENT_GROUP.'.'.self::DOTENV_DIR_OPT;
+    public const USE_APPENV               = self::ENVIRONMENT_GROUP.'.'.self::USE_APPENV_OPT;
 
     public const OUTPUT_RE_SEARCHES      = 'output_re_searches';
 
@@ -88,8 +88,8 @@ class ConfigSchema implements ConfigurationInterface
     {
         $treeBuilder = new TreeBuilder(self::OUTPUT_GROUP);
         $logChannels = [ "emergency", "alert", "critical", "error", "warning", "notice", "info", "debug" ];
-        $node = $treeBuilder->getRootNode()
-            ->info("Output options")
+        $node = $treeBuilder->getRootNode();
+        $node->info("Output options")
             ->addDefaultsIfNotSet()
             ->children()
                 ->enumNode(self::OUTPUT_MODE_OPT)->defaultValue('default')
@@ -112,8 +112,8 @@ class ConfigSchema implements ConfigurationInterface
     public function envConfig()
     {
         $treeBuilder = new TreeBuilder(self::ENVIRONMENT_GROUP);
-        $node = $treeBuilder->getRootNode()
-            ->addDefaultsIfNotSet()
+        $node = $treeBuilder->getRootNode();
+        $node->addDefaultsIfNotSet()
             ->children()
                 ->arrayNode(self::ENV_VARS_OPT)
                     ->useAttributeAsKey('name')
@@ -128,7 +128,7 @@ class ConfigSchema implements ConfigurationInterface
                     ->info('directory where .env file is located')->end()
             ->end();
 
-            return $node;
+        return $node;
     }
     /**
      * The 'exceptions' configuration branch
@@ -138,8 +138,8 @@ class ConfigSchema implements ConfigurationInterface
     public function exceptionsConfig()
     {
         $treeBuilder = new TreeBuilder(self::EXCEPTIONS_GROUP);
-        $node = $treeBuilder->getRootNode()
-            ->addDefaultsIfNotSet()
+        $node = $treeBuilder->getRootNode();
+        $node->addDefaultsIfNotSet()
             ->children()
                 ->booleanNode(self::EXCEPTION_ON_ERROR_OPT)->defaultValue(true)
                     ->info("Raise exception if process->isSuccessful returns false")->end()
@@ -149,7 +149,7 @@ class ConfigSchema implements ConfigurationInterface
                     ->end()
             ->end();
 
-            return $node;
+        return $node;
     }
 
     /**
@@ -160,15 +160,16 @@ class ConfigSchema implements ConfigurationInterface
     public function outputSearchConfig()
     {
         $treeBuilder = new TreeBuilder('output_re_searches');
-        $node = $treeBuilder->getRootNode()
-            ->arrayPrototype()
+        $node = $treeBuilder->getRootNode();
+        $node->arrayPrototype()
                 ->children()
                     ->scalarNode('name')->isRequired()->cannotBeEmpty()
                         ->info('docker base image for testing repository')->end()
                     ->scalarNode('regexp')->isRequired()->cannotBeEmpty()
                         ->info('')->end()
-                    ->end() // children
-                ->end();
+                    ->enumNode('type')->values(['out', 'err', null])->DefaultValue(null)->info("'out' or 'err'")->end()
+                ->end() // children
+            ->end();
 
         return $node;
     }

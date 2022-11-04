@@ -23,8 +23,6 @@ class ProcessHelperOptions extends ConfigHelper
      */
     public function __construct($options = [])
     {
-
-        //$schemaFile = dirname(__FILE__)."/../res/optionSchema.json";
         parent::__construct(new ConfigSchema());
         $this->addArray(self::DEFAULT_CONTEXT, $options);
         $this->setActiveContext('command');
