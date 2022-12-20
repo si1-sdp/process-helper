@@ -55,12 +55,38 @@ class ProcessHelper
      */
     public function __construct($logger = null, $options = [])
     {
-        if (!$logger) {
+        if (null === $logger) {
             $logger = new ConsoleLogger(new ConsoleOutput());
         }
         $this->logger = $logger;
         $this->output = [];
         $this->conf = new ProcessHelperOptions($options);
+    }
+    /**
+     * set logger
+     *
+     * @param LoggerInterface $logger
+     *
+     * @return self
+     */
+    public function setLogger(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+
+        return $this;
+    }
+    /**
+     * set options
+     *
+     * @param array<string,mixed> $options
+     *
+     * @return self
+     */
+    public function setOptions($options)
+    {
+        $this->conf = new ProcessHelperOptions($options);
+
+        return $this;
     }
     /**
      * For debuging purpose : print options
@@ -93,7 +119,6 @@ class ProcessHelper
     public function runInShell($runInShell)
     {
         $this->conf->setDefault(CONF::RUN_IN_SHELL, $runInShell);
-        $this->conf->build();
 
         return $this;
     }
@@ -116,7 +141,6 @@ class ProcessHelper
         if ($useDotEnv) {
             $this->conf->setDefault(CONF::DOTENV_DIR, $dotEnvDir);
         }
-        $this->conf->build();
 
         return $this;
     }
@@ -131,7 +155,7 @@ class ProcessHelper
      */
     public function setOutput($output, $stdout = 'info', $stderr = 'error')
     {
-        if (!in_array($output, CONF::OUTPUT_OPTIONS_LIST)) {
+        if (!in_array($output, CONF::OUTPUT_OPTIONS_LIST, true)) {
             throw new BadOptionException(sprintf("Output option '%s' does not exists", $output));
         }
         foreach ([$stdout, $stderr] as $channel) {
@@ -143,7 +167,6 @@ class ProcessHelper
         $this->conf->setDefault(CONF::OUTPUT_MODE, $output);
         $this->conf->setDefault(CONF::OUTPUT_STDERR_TO, $stderr);
         $this->conf->setDefault(CONF::OUTPUT_STDOUT_TO, $stdout);
-        $this->conf->build();
 
         return $this;
     }
@@ -175,7 +198,6 @@ class ProcessHelper
     {
         $this->conf->removeContext('searches');
         $this->matches = [];
-        $this->conf->build();
     }
 
     /**
@@ -203,14 +225,14 @@ class ProcessHelper
      */
     public function resetMatches($name = null)
     {
-        if ($name) {
+        if (null !== $name) {
             if (!array_key_exists($name, $this->matches)) {
                 throw new BadSearchException(sprintf("resetMatches: No match on variable '%s'", $name));
             }
             $this->matches[$name] = [];
         } else {
-            foreach (array_keys($this->matches) as $name) {
-                $this->matches[$name] = [];
+            foreach (array_keys($this->matches) as $match) {
+                $this->matches[$match] = [];
             }
         }
     }
@@ -224,7 +246,7 @@ class ProcessHelper
      */
     public function getOutput($type = 'all')
     {
-        if (!in_array($type, ['err', 'out', 'all'])) {
+        if (!in_array($type, ['err', 'out', 'all'], true)) {
             throw new UnknownOutputTypeException(sprintf("ProcessHelper:getOutput: Unkown type %s", $type));
         }
         $filterOnType = function ($v) use ($type) {
@@ -266,26 +288,33 @@ class ProcessHelper
     public function findExecutable($name)
     {
         $escapedName = str_replace("'", "", $name);
+        $ph = $this->createFindExecutableProcess();
         try {
-            $options = [
-                CONF::FIND_EXECUTABLE    => false,
-                CONF::EXCEPTION_ON_ERROR => true,
-                CONF::OUTPUT_MODE        => 'silent',
-                CONF::RUN_IN_SHELL       => true,
-            ];
-            $ph = new self($this->logger, $options);
             $ph->execCommand(['which', $escapedName]);
-            $firstLine = $ph->getOutput()[0];
-            if (strlen($firstLine) !== 0) {
-                $firstLine = Path::canonicalize($firstLine);
-            }
-
-            return $firstLine;
+            $ret = $ph->getOutput()[0];
         } catch (\Exception $e) {
             throw new ExecNotFoundException(sprintf("executable '%s' not found", $escapedName));
         }
-    }
+        if (!file_exists($ret)) {
+            throw new ExecNotFoundException(sprintf("which return value '%s' not found", $ret));
+        }
 
+        return $ret;
+    }
+    /**
+     * Creates a ProcessHelper object to be used by findExecutable method
+     *
+     * @return self
+     */
+    public function createFindExecutableProcess()
+    {
+        $options = [
+            CONF::OUTPUT_MODE        => 'silent',
+            CONF::RUN_IN_SHELL       => true,
+        ];
+
+        return new self($this->logger, $options);
+    }
     /**
      * executes a command
      *
@@ -297,15 +326,27 @@ class ProcessHelper
      */
     public function execCommand($command, $commandOptions = [], $logContext = [])
     {
-        $this->conf->addArray('command', $commandOptions);
-        $process = $this->prepareProcess($command, $logContext);
-
-        if ($this->conf->get(CONF::DRY_RUN)) {
+        $process = $this->prepareProcess($command, $commandOptions, $logContext);
+        if ((bool) $this->conf->get(CONF::DRY_RUN)) {
             $this->logger->notice("DRY-RUN - execute command {cmd}", $logContext);
             $this->conf->removeContext('command');
 
             return 0;
         }
+        $this->logger->info("Launching command {cmd}", $logContext);
+
+        return $this->execProcess($process, $logContext);
+    }
+    /**
+     * executes a process after prepareProcess : step 2/2 of command execution
+     *
+     * @param Process              $process
+     * @param array<string,string> $logContext
+     *
+     * @return int
+     */
+    public function execProcess($process, $logContext = [])
+    {
         $processOutput = new ProcessOutput($this->conf, $this->logger, $logContext);
         try {
             $process->start();
@@ -314,18 +355,19 @@ class ProcessHelper
             /** @var string $data */
             foreach ($iterator as $type => $data) {
                 foreach (explode("\n", $data) as $line) {
-                    if (!empty(str_replace(' ', '', $line))) {
-                        if ($this->conf->get(CONF::OUTPUT_RE_SEARCHES)) {
+                    if (0 !== strlen(str_replace(' ', '', $line))) {
+                        if ((bool) $this->conf->get(CONF::OUTPUT_RE_SEARCHES)) {
                             $this->search($line, $type, $this->conf);
                         }
                         $processOutput->newLine($type, $line);
+                        $this->output[] = ["$type" => $line];
                     }
-                    $this->output[] = ["$type" => $line];
                 }
             }
             $this->closeProcess($process, $this->conf, $processOutput, $logContext);
         } catch (ProcessTimedOutException $exception) {
-            $timeout = 0 + $this->conf->get(CONF::TIMEOUT);
+            /** @var int $timeout */
+            $timeout = $this->conf->get(CONF::TIMEOUT);
             $this->logger->error(sprintf("Timeout : job exeeded timeout of %d seconds", $timeout), $logContext);
             $this->returnCode = 160;
         }
@@ -333,92 +375,73 @@ class ProcessHelper
 
         return $this->returnCode;
     }
+
     /**
      * get environment variables for process
      *
      * @param array<string>        $command
+     * @param array<string,mixed>  $commandOptions
      * @param array<string,string> $logContext
      *
      * @return Process
      */
-    protected function prepareProcess($command, &$logContext)
+    public function prepareProcess($command, $commandOptions, &$logContext)
     {
+        $this->conf->addArray('command', $commandOptions);
         $opts = $this->conf;
-        if ($opts->get(CONF::FIND_EXECUTABLE)) {
+        // HANDLE FIND EXECUTABLE
+        if ((bool) $opts->get(CONF::FIND_EXECUTABLE)) {
             $exe = $this->findExecutable($command[0]);
             $command[0] = $exe;
         }
-        if ($opts->get(CONF::RUN_IN_SHELL)) {
-            $process = Process::fromShellCommandline(implode(' ', $command));
-        } else {
-            $process = new Process($command);
-        }
-        if ($opts->get(CONF::ENV_VARS) || $opts->get(CONF::USE_APPENV) || $opts->get(CONF::USE_DOTENV)) {
-            /** @var string $dir */
-            $dir = $opts->get(CONF::DOTENV_DIR);
-            $useAppEnv = (bool) $opts->get(CONF::USE_APPENV);
-            $useDotEnv = (bool) $opts->get(CONF::USE_DOTENV);
-            $vars = ProcessEnv::getConfigEnvVariables($dir, $useAppEnv, $useDotEnv, false, true);
 
-            /** @var array<string,string> $envVars */
-            $envVars = $opts->get(CONF::ENV_VARS);
-            $execEnv = array_replace_recursive($vars, $envVars);
-            $process->setEnv($execEnv);
-        }
+        // GET SYMFO
+        $process = $this->createSymfonyProcess($command, (bool) $opts->get(CONF::RUN_IN_SHELL));
+
+        // SET ENVIRONMENT VARIABLES
+        $process->setEnv(ProcessEnv::getExecutionEnvironment($opts));
+
+        // SET COMMAND LINE
         $this->commandLine = $process->getCommandLine();
         $logContext['cmd'] = join(' ', $command);
-        $timeout = 0 + $opts->get(CONF::TIMEOUT);
+
+        // SET TIMEOUT
+        /** @var int $timeout */
+        $timeout = $opts->get(CONF::TIMEOUT);
         $process->setTimeout($timeout);
+
+        // SET WORKING DIRECTORY
         if ($opts->get(CONF::DIRECTORY) !== null) {
-            $this->logger->debug("set working directory to ".$opts->get(CONF::DIRECTORY));
-            $process->setWorkingDirectory(''.$opts->get(CONF::DIRECTORY));
+            /** @var string $dir */
+            $dir = $opts->get(CONF::DIRECTORY);
+            $this->logger->debug("set working directory to $dir");
+            $process->setWorkingDirectory($dir);
         }
         $this->returnCode = 0;
-        $ignore  = $opts->get(CONF::EXCEPTION_ON_ERROR) ? 'false' : 'true';
+        $ignore  = $opts->get(CONF::EXCEPTION_ON_ERROR) === false ? 'false' : 'true';
         $optsMsg = sprintf("ignore_errors=%s, timeout=%s", $ignore, $timeout);
         $this->logger->debug("Execute command ($optsMsg): {cmd}", $logContext);
 
         return $process;
     }
+
     /**
-     * close Process
+     * Creates the symfony process
      *
-     * @param Process              $process
-     * @param ProcessHelperOptions $opts
-     * @param ProcessOutput        $processOutput
-     * @param array<string,string> $logContext
+     * @param array<string> $command
+     * @param boolean       $inShell
      *
-     * @return void
+     * @return Process
      */
-    protected function closeProcess($process, $opts, $processOutput, $logContext)
+    protected function createSymfonyProcess($command, $inShell)
     {
-        $processOutput->closeProgress();
-        if (!$process->isSuccessful()) {
-            if ('on_error' === $opts->get(CONF::OUTPUT_MODE)) {
-                $this->outputToLog($processOutput);
-            }
-            $processOutput->log('error', ''.$process->getExitCodeText());
-            $this->returnCode = 0 + $process->getExitCode();
-            if ($opts->get(CONF::EXCEPTION_ON_ERROR)) {
-                $err = sprintf(
-                    "error (code=%d) running command: %s",
-                    $process->getExitCode(),
-                    $process->getCommandLine()
-                );
-                /** @var array<integer>|null */
-                $okErrors = $opts->get(CONF::EXIT_CODES_OK);
-                if (null === $okErrors || !in_array($this->returnCode, $okErrors)) {
-                    throw new ProcessException($err);
-                }
-                $processOutput->log('notice', "IGNORED: ".$err);
-            }
+        if (true === $inShell) {
+            $process = Process::fromShellCommandline(implode(' ', $command));
         } else {
-            if (array_key_exists('label', $logContext) && $logContext['label']) {
-                $processOutput->log('notice', "{label} - command was successfull !");
-            } else {
-                $processOutput->log('notice', "command was successfull !");
-            }
+            $process = new Process($command);
         }
+
+        return $process;
     }
     /**
      * send all output to logger
@@ -436,6 +459,47 @@ class ProcessHelper
         }
     }
     /**
+     * close Process
+     *
+     * @param Process              $process
+     * @param ProcessHelperOptions $opts
+     * @param ProcessOutput        $processOutput
+     * @param array<string,string> $logContext
+     *
+     * @return void
+     */
+    private function closeProcess($process, $opts, $processOutput, $logContext)
+    {
+        $processOutput->closeProgress();
+        if (!$process->isSuccessful()) {
+            if ('on_error' === $opts->get(CONF::OUTPUT_MODE)) {
+                $this->outputToLog($processOutput);
+            }
+            $processOutput->log('error', (string) $process->getExitCodeText());
+            $this->returnCode = (int) $process->getExitCode();
+            if (true === $opts->get(CONF::EXCEPTION_ON_ERROR)) {
+                $err = sprintf(
+                    "error (code=%d) running command: '%s'",
+                    $this->returnCode,
+                    $process->getCommandLine()
+                );
+                /** @var array<integer>|null */
+                $okErrors = $opts->get(CONF::EXIT_CODES_OK);
+                if (null === $okErrors || !in_array($this->returnCode, $okErrors, true)) {
+                    $opts->removeContext('command');
+                    throw new ProcessException($err);
+                }
+                $processOutput->log('notice', "IGNORED: ".$err);
+            }
+        } else {
+            if (array_key_exists('label', $logContext) && '' !== $logContext['label']) {
+                $processOutput->log('notice', "{label} - command was successfull !");
+            } else {
+                $processOutput->log('notice', "command was successfull !");
+            }
+        }
+    }
+    /**
      * Search line for matching regexp, set $this->matches accordingly
      *
      * @param string               $line
@@ -444,17 +508,17 @@ class ProcessHelper
 
      * @return void
      */
-    protected function search($line, $type, $opts)
+    private function search($line, $type, $opts)
     {
         /** @var array<array<string,string|null>> $searches */
         $searches = $opts->get(CONF::OUTPUT_RE_SEARCHES);
         foreach ($searches as $reSearch) {
             $name     = $reSearch['name'];
             $re       = $reSearch['regexp'];
-            $searchIn = $reSearch['type'];
+            $doSearch = (null === $reSearch['type'] || $type === $reSearch['type']);
 
             $m     = [];
-            if (preg_match("/$re/", $line, $m) && (null === $searchIn || $type === $searchIn)) {
+            if (preg_match("/$re/", $line, $m) === 1 && $doSearch) {
                 $this->matches["$name"][] = $m[1];
             }
         }

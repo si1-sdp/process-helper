@@ -49,10 +49,18 @@ class ProcessOutput
      */
     public function __construct($opts, $logger, $logContext)
     {
-        $this->outputMode = "".$opts->get(CONF::OUTPUT_MODE);
+        /** @var string $om */
+        $om = $opts->get(CONF::OUTPUT_MODE);
+        $this->outputMode = $om;
 
-        $this->errChannel = "".$opts->get(CONF::OUTPUT_STDERR_TO);
-        $this->outChannel = "".$opts->get(CONF::OUTPUT_STDOUT_TO);
+        /** @var string $ec */
+        $ec = $opts->get(CONF::OUTPUT_STDERR_TO);
+        $this->errChannel = $ec;
+
+        /** @var string $oc */
+        $oc = $opts->get(CONF::OUTPUT_STDOUT_TO);
+        $this->outChannel = $oc;
+
         $this->logger     = $logger;
         $this->logContext = $logContext;
         if ('progress' === $this->outputMode) {
@@ -74,7 +82,7 @@ class ProcessOutput
     public function newLine($type, $line, $errorHappened = false)
     {
         $this->lastLine = $line;
-        if ($this->bar) {
+        if (null !== $this->bar) {
             $this->bar->advance();
             $this->bar->setMessage(substr($line, 0, 80));
         } else {
@@ -92,7 +100,7 @@ class ProcessOutput
     public function log($level, $line)
     {
         if ($this->outputMode !== 'silent') {
-            $this->logger->$level("$line", $this->logContext);
+            $this->logger->$level("$line", $this->logContext); /** @phpstan-ignore-line  */
         }
     }
     /**
@@ -103,7 +111,7 @@ class ProcessOutput
      */
     public function closeProgress()
     {
-        if ($this->bar) {
+        if (null !== $this->bar) {
             $this->bar->clear();
             $this->logOutput('out', $this->lastLine);
         }
@@ -125,6 +133,6 @@ class ProcessOutput
         } else {
             $channel = $this->outChannel;
         }
-        $this->logger->$channel("$line", $this->logContext);
+        $this->logger->$channel("$line", $this->logContext); /** @phpstan-ignore-line  */
     }
 }

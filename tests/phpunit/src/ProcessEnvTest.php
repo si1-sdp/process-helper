@@ -11,6 +11,8 @@ use PHPUnit\Framework\TestCase;
 use org\bovigo\vfs\vfsStream;
 use org\bovigo\vfs\vfsStreamDirectory;
 use DgfipSI1\ProcessHelper\ProcessEnv;
+use DgfipSI1\ProcessHelper\ProcessHelperOptions;
+use DgfipSI1\ProcessHelper\ConfigSchema as CONF;
 
 /**
  * @covers \DgfipSI1\ProcessHelper\ProcessEnv
@@ -35,6 +37,62 @@ class ProcessEnvTest extends TestCase
         $this->root = vfsStream::setup();
     }
     /**
+     * data provider for testGetExecutionEnvironment
+     *
+     * @return array<string,array<mixed>>
+     */
+    public function getExecEnvData()
+    {
+        return [                    // extra  app    dot
+            'extra:N-app:N:dot:N' => [ false, false, false],
+            'extra:Y-app:N:dot:N' => [ true,  false, false],
+            'extra:N-app:Y:dot:N' => [ false, true,  false],
+            'extra:Y-app:Y:dot:N' => [ true,  true,  false],
+            'extra:N-app:N:dot:Y' => [ false, false, true ],
+            'extra:Y-app:N:dot:Y' => [ true,  false, true ],
+            'extra:N-app:Y:dot:Y' => [ false, true,  true ],
+            'extra:Y-app:Y:dot:Y' => [ true,  true,  true ],
+        ];
+    }
+    /**
+     * @dataProvider getExecEnvData
+     *
+     * @param bool $extra
+     * @param bool $app
+     * @param bool $dot
+     *
+     * @return void
+     */
+    public function testGetExecutionEnvironment($extra, $app, $dot)
+    {
+        $options = [ CONF::USE_APPENV => $app, CONF::USE_DOTENV => $dot];
+        if ($extra) {
+            $options[CONF::ENV_VARS] = [ 'extra_var' => 'extra_value' ];
+        }
+        if ($dot) {
+            $options[CONF::DOTENV_DIR] = $this->root->url();
+            file_put_contents($this->root->url().'/.env', "dot_var = dot_value\n");
+        }
+        $_ENV['app_var'] = 'app_value';
+        $pho = new ProcessHelperOptions($options);
+        $env = ProcessEnv::getExecutionEnvironment($pho);
+        if ($extra) {
+            self::assertArrayHasKey('extra_var', $env);
+            self::assertEquals('extra_value', $env['extra_var']);
+        }
+        if ($dot) {
+            self::assertArrayHasKey('dot_var', $env);
+            self::assertEquals('dot_value', $env['dot_var']);
+        }
+        if ($app) {
+            self::assertArrayHasKey('app_var', $env);
+            self::assertEquals('app_value', $env['app_var']);
+        } else {
+            self::assertArrayHasKey('app_var', $env);
+            self::assertEquals(false, $env['app_var']);
+        }
+    }
+    /**
      * Test getGetConfigEnvVariables method
      */
     public function testGetConfigEnvVariables(): void
@@ -50,7 +108,7 @@ class ProcessEnvTest extends TestCase
             'var2'     => 'var2_value',
             'var3'     => 'var3_value',
         ];
-        $this->assertEquals($expected, $dgfipEnv, "Simple merge failed");
+        self::assertEquals($expected, $dgfipEnv, "Simple merge failed");
 
         $dgfipEnv = ProcessEnv::getConfigEnvVariables($this->root->url(), true, false);
         $expected = [
@@ -58,14 +116,14 @@ class ProcessEnvTest extends TestCase
             'var1'     => 'var1_value',
             'var2'     => 'var2_value',
         ];
-        $this->assertEquals($expected, $dgfipEnv, "Only app_env test failed");
+        self::assertEquals($expected, $dgfipEnv, "Only app_env test failed");
 
         $dgfipEnv = ProcessEnv::getConfigEnvVariables($this->root->url(), false, true);
         $expected = [
             'var2'     => 'var2_.env_value',
             'var3'     => 'var3_value',
         ];
-        $this->assertEquals($expected, $dgfipEnv, "Only dot_env test failed");
+        self::assertEquals($expected, $dgfipEnv, "Only dot_env test failed");
 
         $dgfipEnv = ProcessEnv::getConfigEnvVariables($this->root->url(), false, true, false, true);
         $expected = [
@@ -75,7 +133,7 @@ class ProcessEnvTest extends TestCase
             'var3'     => 'var3_value',
 
         ];
-        $this->assertEquals($expected, $dgfipEnv, "setAbsentToFalse, only dot_env failed");
+        self::assertEquals($expected, $dgfipEnv, "setAbsentToFalse, only dot_env failed");
 
         $dgfipEnv = ProcessEnv::getConfigEnvVariables($this->root->url(), true, false, false, true);
         $expected = [
@@ -85,7 +143,7 @@ class ProcessEnvTest extends TestCase
             'var3'     => false,
 
         ];
-        $this->assertEquals($expected, $dgfipEnv, "setAbsentToFalse, only app_env failed");
+        self::assertEquals($expected, $dgfipEnv, "setAbsentToFalse, only app_env failed");
 
         $dgfipEnv = ProcessEnv::getConfigEnvVariables($this->root->url(), false, false, false, true);
         $expected = [
@@ -95,7 +153,7 @@ class ProcessEnvTest extends TestCase
             'var3'     => false,
 
         ];
-        $this->assertEquals($expected, $dgfipEnv, "all shoud be false");
+        self::assertEquals($expected, $dgfipEnv, "all shoud be false");
 
         $dgfipEnv = ProcessEnv::getConfigEnvVariables($this->root->url(), true, true, true, true);
         $expected = [
@@ -104,6 +162,6 @@ class ProcessEnvTest extends TestCase
             'var2'     => 'var2_value',
             'var3'     => 'var3_value',
         ];
-        $this->assertEquals($expected, $dgfipEnv);
+        self::assertEquals($expected, $dgfipEnv);
     }
 }

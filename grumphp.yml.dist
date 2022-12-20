@@ -1,0 +1,62 @@
+---
+grumphp:
+    hooks_dir: ~
+    hooks_preset: local
+    ascii:
+        failed: ~
+        succeeded: ~
+    fixer:
+        enabled: false
+    hide_circumvention_tip: false
+    tasks:
+        clover_coverage:
+            clover_file: tests/results/coverage.xml
+            # Requiring 100% code coverage here makes it safe to just put a static
+            # badge in the README rather than using some third-party service. If
+            # this ever changes, that strategy will have to change accordingly.
+            level: 100
+        composer: ~
+        composer_normalize: ~
+        phpcs:
+            standard: []
+            whitelist_patterns:
+                - src
+                - tests
+        phplint:
+            ignore_patterns:
+                - .idea
+                - var
+                - vendor
+        phpstan:
+            use_grumphp_paths: false
+        phpunit: ~
+        securitychecker_roave: ~
+        xmllint:
+            ignore_patterns:
+                - .idea
+                - var
+                - vendor
+            triggered_by:
+                - xml
+                - xml.dist
+        yamllint:
+            whitelist_patterns:
+                - .github
+                - /^.*.ya?ml(.dist)?$/
+                - config
+                - src
+    testsuites:
+        static:
+            tasks:
+                - composer
+                - composer_normalize
+                - phpcs
+                - phplint
+                - phpstan
+                - xmllint
+                - yamllint
+        test:
+            tasks:
+                - clover_coverage
+                - phpunit
+

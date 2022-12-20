@@ -1,0 +1,21 @@
+{
+    "$schema": "vendor/infection/infection/resources/schema.json",
+    "source": {
+        "directories": [
+            "src"
+        ]
+    },
+    "timeout": 10,
+    "logs": {
+       "html": "tests/results/infection.html",
+       "summary": "tests/results/summary.log",
+       "perMutator": "tests/results/per-mutator.md"
+    },
+    "mutators": {
+       "@default": true,
+       "@cast": false,
+       "global-ignoreSourceCodeByRegex": [
+            "\\$this->debug.*"
+        ]
+    }
+}

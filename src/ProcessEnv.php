@@ -9,6 +9,7 @@ declare(strict_types=1);
 namespace DgfipSI1\ProcessHelper;
 
 use Symfony\Component\Filesystem\Path;
+use DgfipSI1\ProcessHelper\ConfigSchema as CONF;
 
 /**
  * class ProcessEnv
@@ -17,11 +18,33 @@ use Symfony\Component\Filesystem\Path;
 class ProcessEnv
 {
     /**
+     * gets the execution environment variables according to configuration
+     *
+     * @param ProcessHelperOptions $opts
+     *
+     * @return array<string,string>
+     */
+    public static function getExecutionEnvironment(ProcessHelperOptions $opts)
+    {
+        // Handle environment
+        /** @var array<string,string> $envVars */
+        $envVars = $opts->get(CONF::ENV_VARS);
+        $useAppEnv = (bool) $opts->get(CONF::USE_APPENV);
+        $useDotEnv = (bool) $opts->get(CONF::USE_DOTENV);
+        /** @var string $dir */
+        $dir = $opts->get(CONF::DOTENV_DIR);
+        $vars = ProcessEnv::getConfigEnvVariables($dir, $useAppEnv, $useDotEnv, false, true);
+        $execEnv = array_replace_recursive($vars, $envVars);
+
+        return $execEnv;
+    }
+
+    /**
      * @param string $rootDir     root directory
      * @param bool   $appEnv      if true, return application environement
      * @param bool   $dotEnv      if true, return variables from .env file
      * @param bool   $loadDotEnv  if true, load variables from .env file in the app environment
-     * @param bool   $unsetAbsent if true, absent vars will be set to false ans symfony process will ot pass them
+     * @param bool   $unsetAbsent if true, absent vars will be set to false and symfony process will not pass them
      *                            See Symfony process / environment vars at :
      *                            https://symfony.com/doc/current/components/process.html#setting-environment-variables-for-processes
      *                            To unset a var in environment, set its value to false
@@ -37,7 +60,7 @@ class ProcessEnv
     ) {
         $result = [];
         $absentKeys = [];
-        if (true === $dotEnv && true === $loadDotEnv) {
+        if ($dotEnv && $loadDotEnv) {
             $result = \Dotenv\Dotenv::createImmutable($rootDir)->safeLoad();
         } else {
             $dotEnvVars = self::parseDotEnv($rootDir);
@@ -69,15 +92,14 @@ class ProcessEnv
      *
      * @return array<string,string|null>
      */
-    protected static function parseDotEnv($rootDir)
+    private static function parseDotEnv($rootDir)
     {
         $dotEnvVars = [];
         $dotEnvFile = Path::join($rootDir, ".env");
         if (file_exists($dotEnvFile)) {
+            /** @var string $content */
             $content = file_get_contents($dotEnvFile);
-            if ($content) {
-                $dotEnvVars = \Dotenv\Dotenv::parse($content);
-            }
+            $dotEnvVars = \Dotenv\Dotenv::parse($content);
         }
 
         return $dotEnvVars;

@@ -16,6 +16,9 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
  */
 class ConfigSchema implements ConfigurationInterface
 {
+
+    public const DEFAULT_TIMEOUT        = 60;
+
     public const RUN_IN_SHELL            = 'run_in_shell';
     public const TIMEOUT                 = 'timeout';
     public const DRY_RUN                 = 'dry_run';
@@ -64,7 +67,7 @@ class ConfigSchema implements ConfigurationInterface
         $treeBuilder->getRootNode()->children()
                 ->booleanNode(self::RUN_IN_SHELL)->defaultValue(false)
                     ->info("If true, run process in shell (see symfony/process documentation).")->end()
-                ->integerNode(self::TIMEOUT)->defaultValue(60)->min(1)
+                ->integerNode(self::TIMEOUT)->defaultValue(self::DEFAULT_TIMEOUT)->min(1)
                     ->info("symfony process timeout in seconds.")->end()
                 ->booleanNode(self::DRY_RUN)->defaultValue(false)
                     ->info("Do not run process, just log command line.")->end()
@@ -84,7 +87,7 @@ class ConfigSchema implements ConfigurationInterface
      *
      * @return NodeDefinition
      */
-    public function outputConfig()
+    private function outputConfig()
     {
         $treeBuilder = new TreeBuilder(self::OUTPUT_GROUP);
         $logChannels = [ "emergency", "alert", "critical", "error", "warning", "notice", "info", "debug" ];
@@ -109,7 +112,7 @@ class ConfigSchema implements ConfigurationInterface
      *
      * @return NodeDefinition
      */
-    public function envConfig()
+    private function envConfig()
     {
         $treeBuilder = new TreeBuilder(self::ENVIRONMENT_GROUP);
         $node = $treeBuilder->getRootNode();
@@ -135,7 +138,7 @@ class ConfigSchema implements ConfigurationInterface
      *
      * @return NodeDefinition
      */
-    public function exceptionsConfig()
+    private function exceptionsConfig()
     {
         $treeBuilder = new TreeBuilder(self::EXCEPTIONS_GROUP);
         $node = $treeBuilder->getRootNode();
@@ -157,7 +160,7 @@ class ConfigSchema implements ConfigurationInterface
      *
      * @return NodeDefinition
      */
-    public function outputSearchConfig()
+    private function outputSearchConfig()
     {
         $treeBuilder = new TreeBuilder('output_re_searches');
         $node = $treeBuilder->getRootNode();
@@ -167,7 +170,7 @@ class ConfigSchema implements ConfigurationInterface
                         ->info('docker base image for testing repository')->end()
                     ->scalarNode('regexp')->isRequired()->cannotBeEmpty()
                         ->info('')->end()
-                    ->enumNode('type')->values(['out', 'err', null])->DefaultValue(null)->info("'out' or 'err'")->end()
+                    ->enumNode('type')->values(['out', 'err', null])->defaultValue(null)->info("'out' or 'err'")->end()
                 ->end() // children
             ->end();
 
