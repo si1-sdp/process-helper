@@ -22,8 +22,6 @@ use DgfipSI1\ProcessHelper\ProcessHelper;
 use DgfipSI1\ProcessHelper\ProcessHelperOptions;
 use Exception;
 use Mockery\Mock;
-use org\bovigo\vfs\vfsStream;
-use org\bovigo\vfs\vfsStreamDirectory;
 use ReflectionClass;
 use Symfony\Component\Console\Logger\ConsoleLogger;
 use Symfony\Component\Process\Exception\ProcessTimedOutException;

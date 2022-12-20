@@ -83,7 +83,7 @@ class SchemaTest extends TestCase
             CONF::OUTPUT_STDERR_TO.'3' => [ CONF::OUTPUT_STDERR_TO, 'alert'     ],
             CONF::OUTPUT_STDERR_TO.'4' => [ CONF::OUTPUT_STDERR_TO, 'emergency' ],
             CONF::ENV_VARS             => [ CONF::ENV_VARS,         ['foo' => 1]],
-            CONF::USE_APPENV           => [ CONF::USE_APPENV,       true        ],
+            CONF::USE_APPENV           => [ CONF::USE_APPENV,       false       ],
             CONF::USE_DOTENV           => [ CONF::USE_DOTENV,       true        ],
         ];
     }
@@ -123,7 +123,7 @@ class SchemaTest extends TestCase
         self::assertEquals('error', $conf->get(CONF::OUTPUT_STDERR_TO));
 
         self::assertEquals([], $conf->get(CONF::ENV_VARS));
-        self::assertEquals(false, $conf->get(CONF::USE_APPENV));
+        self::assertEquals(true, $conf->get(CONF::USE_APPENV));
         self::assertEquals(false, $conf->get(CONF::USE_DOTENV));
         self::assertEquals('.', $conf->get(CONF::DOTENV_DIR));
 

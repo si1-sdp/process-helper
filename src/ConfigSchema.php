@@ -123,7 +123,7 @@ class ConfigSchema implements ConfigurationInterface
                     ->prototype('scalar')->end()
                     ->info("array of variable names and values to pass as environment for the process.")
                     ->end()     // arrayNode
-                ->booleanNode(self::USE_APPENV_OPT)->defaultValue(false)
+                ->booleanNode(self::USE_APPENV_OPT)->defaultValue(true)
                     ->info('Add vars in $_SERVER and $_ENV to process environment')->end()
                 ->booleanNode(self::USE_DOTENV_OPT)->defaultValue(false)
                     ->info("Add vars in .env file to process environment")->end()
