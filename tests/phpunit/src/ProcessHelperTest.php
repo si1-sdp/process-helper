@@ -561,6 +561,7 @@ class ProcessHelperTest extends LogTestCase
         $method->setAccessible(true);
 
         $command = ['test_command'];
+        /** @var Process $process */
         $process = $method->invokeArgs($ph, [$command, $inShell]);
         self::assertInstanceOf(Process::class, $process);
         if ($inShell) {
