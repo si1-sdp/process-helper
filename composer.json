@@ -69,7 +69,7 @@
 		"all": "grumphp run",
 		"c": "rm -r tests/tmp/*/* &> /dev/null || true",
 		"coverage": "firefox $(pwd)/tests/results/html-coverage/index.html",
-		"infection": "infection && firefox $(pwd)/tests/results/infection.html",
+		"infection": "infection --threads=max && firefox $(pwd)/tests/results/infection.html",
 		"lint": "parallel-lint --no-progress bin/composer-stage src tests",
 		"phpcbf": "phpcbf",
 		"phpcs": "vendor/bin/phpcs --report=junit",
