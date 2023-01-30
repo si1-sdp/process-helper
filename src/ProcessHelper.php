@@ -291,6 +291,7 @@ class ProcessHelper
             $ph->execCommand(['which', $escapedName]);
             $ret = $ph->getOutput()[0];
         } catch (\Exception $e) {
+            print $e->getMessage();
             throw new ExecNotFoundException(sprintf("executable '%s' not found", $escapedName));
         }
         if (!file_exists($ret)) {

@@ -329,8 +329,8 @@ class ProcessHelperTest extends LogTestCase
         }
         /** test public call */
         $ph = new ProcessHelper($this->logger);
-        $ret = $ph->findExecutable('bash');
-        self::assertMatchesRegularExpression('/bash/', $ret);
+        $ret = $ph->findExecutable('ls');
+        self::assertMatchesRegularExpression('/ls/', $ret);
     }
    /**
      * test createFindExecutableProcess method
