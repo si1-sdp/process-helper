@@ -655,7 +655,7 @@ class ProcessHelperTest extends LogTestCase
                 break;
             case 'default':
                 if (0 === $returnCode) {
-                    $this->assertNoticeInLog('command was successfull');
+                    $this->assertInfoInLog('command was successfull');
                 } elseif ($returnCode > 0) {
                     $this->assertErrorInLog('exitText');
                 }
@@ -674,7 +674,7 @@ class ProcessHelperTest extends LogTestCase
                 break;
             case 'on_error':
                 if (0 === $returnCode) {
-                    $this->assertNoticeInLog('command was successfull');
+                    $this->assertInfoInLog('command was successfull');
                 } else {
                     $this->assertErrorInLog('3');
                     $this->assertInfoInLog('1');
@@ -786,9 +786,9 @@ class ProcessHelperTest extends LogTestCase
         } else {
             $successText = "command was successfull !";
             if (null !== $label) {
-                $po->shouldReceive('log')->with('notice', "{label} - $successText")->once(); /** @phpstan-ignore-line */
+                $po->shouldReceive('log')->with('info', "{label} - $successText")->once(); /** @phpstan-ignore-line */
             } else {
-                $po->shouldReceive('log')->with('notice', $successText)->once();             /** @phpstan-ignore-line */
+                $po->shouldReceive('log')->with('info', $successText)->once();             /** @phpstan-ignore-line */
             }
         }
         $msg = '';

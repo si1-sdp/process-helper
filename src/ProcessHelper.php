@@ -491,9 +491,9 @@ class ProcessHelper
             }
         } else {
             if (array_key_exists('label', $logContext) && '' !== $logContext['label']) {
-                $processOutput->log('notice', "{label} - command was successfull !");
+                $processOutput->log('info', "{label} - command was successfull !");
             } else {
-                $processOutput->log('notice', "command was successfull !");
+                $processOutput->log('info', "command was successfull !");
             }
         }
     }
