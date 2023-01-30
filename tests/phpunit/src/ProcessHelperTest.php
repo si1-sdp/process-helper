@@ -327,10 +327,8 @@ class ProcessHelperTest extends LogTestCase
         } else {
             self::assertEquals('', $msg);
         }
-        /** test public call */
-        $ph = new ProcessHelper($this->logger);
-        $ret = $ph->findExecutable('ls');
-        self::assertMatchesRegularExpression('/ls/', $ret);
+        $method = (new ReflectionClass(ProcessHelper::class))->getMethod('findExecutable');
+        self::assertTrue($method->isPublic());
     }
    /**
      * test createFindExecutableProcess method
@@ -600,7 +598,7 @@ class ProcessHelperTest extends LogTestCase
     }
 
     /**
-     * Test execCommand method
+     * Test execProcess method
      *
      * @covers DgfipSI1\ProcessHelper\ProcessHelper::execProcess
      * @covers DgfipSI1\ProcessHelper\ProcessHelper::getOutput
@@ -699,9 +697,22 @@ class ProcessHelperTest extends LogTestCase
             self::assertEquals(160, $ret);
         }
         self::assertFalse($this->getConf($ph)->hasContext('command'));
-
-        // $this->showDebugLogs();
     }
+
+   /**
+     * Test execProcess method
+     *
+     * @covers DgfipSI1\ProcessHelper\ProcessHelper::execProcess
+     *
+     */
+    public function testRealProcessExecution(): void
+    {
+        // test real execution
+        $ph = new ProcessHelper($this->logger);
+        $ph->execCommand(['composer', '--version']);
+        self::assertMatchesRegularExpression('/Composer version 2/', $ph->getOutput()[0]);
+    }
+
     /**
      * Undocumented function
      *
